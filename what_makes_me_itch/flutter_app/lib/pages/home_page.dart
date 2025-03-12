@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'custom_app_bar.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,17 +23,48 @@ class HomePageState extends State<HomePage> {
     _speech = stt.SpeechToText();
   }
 
-  void _sendMessage() {
+  void _sendMessage() async {
     if (_controller.text.isNotEmpty) {
+      String userMessage = _controller.text;
+
       setState(() {
-        messages.add({"sender": "user", "text": _controller.text});
-        messages.add({
-          "sender": "ai",
-          "text":
-              "I'm analyzing this potential allergen... Can you describe your symptoms?"
-        });
+        messages.add({"sender": "user", "text": userMessage});
+        messages.add({"sender": "ai", "text": "Typing..."});
       });
+
       _controller.clear();
+
+      try {
+        var response = await http.post(
+          Uri.parse("http://127.0.0.1:5000/chat"),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({
+            "user_id": "1",
+            "message": userMessage,
+            "new_chat": messages.isEmpty // Start a new session if chat is empty
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          var data = jsonDecode(response.body);
+          setState(() {
+            messages.removeLast(); // Remove "Typing..."
+            messages.add({"sender": "ai", "text": data["response"]});
+          });
+        } else {
+          setState(() {
+            messages.removeLast();
+            messages
+                .add({"sender": "ai", "text": "Error: AI failed to respond."});
+          });
+        }
+      } catch (e) {
+        setState(() {
+          messages.removeLast();
+          messages.add(
+              {"sender": "ai", "text": "Error: Could not connect to server."});
+        });
+      }
     }
   }
 
@@ -55,6 +88,7 @@ class HomePageState extends State<HomePage> {
   void _editMessage(int index) {
     TextEditingController editController =
         TextEditingController(text: messages[index]["text"]);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -70,16 +104,64 @@ class HomePageState extends State<HomePage> {
           ),
           TextButton(
             onPressed: () {
-              setState(() {
-                messages[index]["text"] = editController.text;
-              });
+              String editedText = editController.text;
+
+              if (editedText.isNotEmpty) {
+                setState(() {
+                  // Remove the original user message
+                  messages.removeAt(index);
+
+                  // Remove the AI response after the user message (if exists)
+                  if (index < messages.length &&
+                      messages[index]["sender"] == "ai") {
+                    messages.removeAt(index);
+                  }
+
+                  // Add the edited user message
+                  messages.add({"sender": "user", "text": editedText});
+                });
+
+                // Send the edited message to the backend
+                _sendEditedMessage(editedText);
+              }
+
               Navigator.pop(context);
             },
-            child: Text("Save"),
+            child: Text("Resend"),
           ),
         ],
       ),
     );
+  }
+
+  void _sendEditedMessage(String message) async {
+    try {
+      var response = await http.post(
+        Uri.parse(
+            "http://127.0.0.1:5000/chat"), // Update with actual Flask API URL
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"message": message}),
+      );
+
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+        setState(() {
+          messages.add({"sender": "ai", "text": data["response"]});
+        });
+      } else {
+        setState(() {
+          messages.add(
+              {"sender": "ai", "text": "Error: Unable to get a response."});
+        });
+      }
+    } catch (e) {
+      setState(() {
+        messages.add({
+          "sender": "ai",
+          "text": "Error: Unable to connect to the server."
+        });
+      });
+    }
   }
 
   void _undoMessage(int index) {
