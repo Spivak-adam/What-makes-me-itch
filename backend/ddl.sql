@@ -22,14 +22,25 @@ CREATE TABLE chat_history (
     FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id) ON DELETE CASCADE
 );
 
+CREATE TABLE products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_name VARCHAR(255) NOT NULL UNIQUE,
+    ingredients TEXT NOT NULL,
+    date_added DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE allergies (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     allergen_name VARCHAR(255) NOT NULL,
     severity ENUM('mild', 'moderate', 'severe') NOT NULL,
     ingredients TEXT,
+    reaction VARCHAR(255),
+    location VARCHAR(255),
+    product_id INT,
     date_added DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
 );
 
 CREATE TABLE notifications (
