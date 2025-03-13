@@ -71,7 +71,6 @@ class HomePageState extends State<HomePage> {
       setState(() {
         _isNewChat = false;
       });
-
     }
   }
 
@@ -92,53 +91,47 @@ class HomePageState extends State<HomePage> {
     _speech.stop();
   }
 
-  void _editMessage(int index, String oldMessage) {
-  TextEditingController editController =
-      TextEditingController(text: messages[index]["text"]);
+  Future<void> _editMessage(int index, String oldMessage) async {
+    TextEditingController editController =
+        TextEditingController(text: messages[index]["text"]);
 
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text("Edit Message"),
-      content: TextField(
-        controller: editController,
-        decoration: InputDecoration(border: OutlineInputBorder()),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text("Cancel"),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Edit Message"),
+        content: TextField(
+          controller: editController,
+          decoration: InputDecoration(border: OutlineInputBorder()),
         ),
-        TextButton(
-          onPressed: () async {
-            String editedText = editController.text;
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              String editedText = editController.text;
+              if (editedText.isNotEmpty) {
+                bool success = await _updateMessageInDB(oldMessage, editedText);
+                if (success) {
+                  
 
-            if (editedText.isNotEmpty) {
-              // Attempt to update in the database first
-              bool success = await _updateMessageInDB(oldMessage, editedText);
+                  setState(() {
+                    messages[index]["text"] = editedText;
 
-              if (success) {
-                // Only update UI if DB update was successful
-                setState(() {
-                  messages[index]["text"] = editedText;
-                });
+                    // Remove the AI's old response and store it
+                    if (index + 1 < messages.length &&
+                        messages[index + 1]["sender"] == "ai") {
+                      messages.removeAt(index + 1);
+                    }
+                  });
 
-                // Show success message
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Message updated successfully!"),
-                      backgroundColor: Colors.green,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
+                  Navigator.pop(context);
 
-                // Close the dialog after success
-                Navigator.pop(context);
-              } else {
-                // Show error message
-                if (mounted) {
+                  // Resend the edited message along with the old AI response
+                
+                  _sendEditedMessage(editedText);
+                } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text("Error: Could not update message."),
@@ -148,45 +141,82 @@ class HomePageState extends State<HomePage> {
                   );
                 }
               }
-            }
-          },
-          child: Text("Update"),
-        ),
-      ],
-    ),
-  );
-}
+            },
+            child: Text("Update"),
+          ),
+        ],
+      ),
+    );
+  }
 
+  void _sendEditedMessage(String newMessage) async {
+    setState(() {
+      messages.add({"sender": "ai", "text": "Typing..."});
+    });
 
+    try {
+      var response = await http.post(
+        Uri.parse("http://127.0.0.1:5000/chat"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "user_id": "1",
+          "message": newMessage,
+          "new_chat": false // Keep it within the same chat session
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+        setState(() {
+          messages.removeLast(); // Remove "Typing..."
+          messages.add({"sender": "ai", "text": data["response"]});
+        });
+      } else {
+        setState(() {
+          messages.removeLast();
+          messages
+              .add({"sender": "ai", "text": "Error: AI failed to respond."});
+        });
+      }
+    } catch (e) {
+      setState(() {
+        messages.removeLast();
+        messages.add(
+            {"sender": "ai", "text": "Error: Could not connect to server."});
+      });
+    }
+  }
 
   Future<bool> _updateMessageInDB(String oldMessage, String newMessage) async {
-  try {
-    var response = await http.put(
-      Uri.parse("http://127.0.0.1:5000/chat/edit"), // Flask API URL
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"old_message": oldMessage, "new_message": newMessage}),
-    );
+    try {
+      var response = await http.put(
+        Uri.parse("http://127.0.0.1:5000/chat/edit"), // Flask API URL
+        headers: {"Content-Type": "application/json"},
+        body:
+            jsonEncode({"old_message": oldMessage, "new_message": newMessage}),
+      );
 
-    if (response.statusCode == 200) {
-      return true; // Success
-    } else {
-      return false; // Error (e.g., invalid ID, server issue)
+      if (response.statusCode == 200) {
+        return true; // Success
+      } else {
+        return false; // Error (e.g., invalid ID, server issue)
+      }
+    } catch (e) {
+      return false; // Connection error or other issue
     }
-  } catch (e) {
-    return false; // Connection error or other issue
   }
-}
-
 
   void _undoMessage(int index) async {
-    String messageId = messages[index]["id"]?.toString() ?? "";
+    if (index < 0 || index >= messages.length) return;
 
-    if (messageId.isEmpty) {
+    String messageText = messages[index]["text"] ?? "";
+
+    if (messageText.isEmpty) {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
           title: Text("Error"),
-          content: Text("Message ID is null or empty."),
+          content: Text("Message text is null or empty."),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -199,23 +229,26 @@ class HomePageState extends State<HomePage> {
     }
 
     setState(() {
-      if (index < messages.length && messages[index]["sender"] == "user") {
+      // Remove user message
+      if (messages[index]["sender"] == "user") {
         messages.removeAt(index);
-        if (messages.isNotEmpty && messages.last["sender"] == "ai") {
-          messages.removeLast();
+
+        // Remove AI response if it follows the user's message
+        if (index < messages.length && messages[index]["sender"] == "ai") {
+          messages.removeAt(index);
         }
       }
     });
 
-    await _deleteMessageFromDB(messageId);
+    await _deleteMessageFromDB(messageText);
   }
 
-  Future<void> _deleteMessageFromDB(String messageId) async {
+  Future<void> _deleteMessageFromDB(String messageText) async {
     try {
       var response = await http.delete(
         Uri.parse("http://127.0.0.1:5000/chat/delete"), // Flask API URL
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"message_id": messageId}),
+        body: jsonEncode({"message_text": messageText}),
       );
 
       if (!mounted) return; // Prevents using context if widget is disposed
@@ -280,7 +313,8 @@ class HomePageState extends State<HomePage> {
                           IconButton(
                             icon:
                                 Icon(Icons.edit, size: 18, color: Colors.grey),
-                            onPressed: () => _editMessage(index, messages[index]["text"]!),
+                            onPressed: () =>
+                                _editMessage(index, messages[index]["text"]!),
                           ),
                           IconButton(
                             icon: Icon(Icons.undo, size: 18, color: Colors.red),

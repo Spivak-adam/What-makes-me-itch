@@ -73,20 +73,54 @@ def edit_message():
 @app.route("/chat/delete", methods=["DELETE"])
 def delete_message():
     data = request.json
-    message_id = data.get("message_id")
+    message_text = data.get("message_text")
 
-    if not message_id:
-        return jsonify({"error": "Message ID is required"}), 400
+    if not message_text:
+        return jsonify({"error": "Message text is required"}), 400
 
     conn = connect_db()
     cursor = conn.cursor()
 
-    query = "DELETE FROM chat_history WHERE id = %s"
-    cursor.execute(query, (message_id,))
-    conn.commit()
-    conn.close()
+    try:
+        # Get the session_id of the message being deleted
+        cursor.execute("""
+            SELECT session_id, id FROM chat_history 
+            WHERE message = %s AND role = 'user'
+            ORDER BY timestamp ASC LIMIT 1
+        """, (message_text,))
+        
+        user_message = cursor.fetchone()
 
-    return jsonify({"message": "Message deleted successfully"}), 200
+        if not user_message:
+            return jsonify({"error": "User message not found"}), 404
+
+        session_id, user_message_id = user_message
+
+        # Delete the user message first
+        cursor.execute("DELETE FROM chat_history WHERE id = %s", (user_message_id,))
+
+        # Find and delete the assistant's response that follows this message
+        cursor.execute("""
+            DELETE FROM chat_history 
+            WHERE role = 'assistant' 
+            AND session_id = %s 
+            AND id > %s
+            ORDER BY id ASC LIMIT 1
+        """, (session_id, user_message_id))
+
+        conn.commit()
+        return jsonify({"status": "success"}), 200
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error deleting message: {str(e)}")  # Debugging
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
 
 
 if __name__ == "__main__":
