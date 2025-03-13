@@ -57,14 +57,17 @@ def get_chat_history(session_id, limit=10):
 
 # Retrieve past allergy-related history (not chat history)
 def get_allergy_history(user_id):
+    """Retrieve a user's past allergens from the allergies table."""
     conn = connect_db()
     cursor = conn.cursor(dictionary=True)
     query = """
-        SELECT DISTINCT ingredients FROM allergies 
-        WHERE user_id = %s
+        SELECT DISTINCT p.ingredients 
+        FROM products p
+        JOIN allergies a on p.id = a.product_id
+        WHERE a.user_id = %s;
     """
     cursor.execute(query, (user_id,))
-    past_allergens = [row["trigger"] for row in cursor.fetchall()]
+    past_allergens = [row["ingredients"] for row in cursor.fetchall()]
     conn.close()
 
     if past_allergens:
@@ -81,31 +84,31 @@ def extract_product_and_ingredients(ai_response):
     reaction = None
     location = None
 
-    # Detect product name
+    # Extracting product name
     product_pattern = r"Product:\s*([\w\s]+)"
     match = re.search(product_pattern, ai_response, re.IGNORECASE)
     if match:
         product_name = match.group(1).strip()
 
-    # Detect ingredients list
+    # Extracting ingredients
     ingredient_pattern = r"Ingredients:\s*([\w\s,]+)"
     match = re.search(ingredient_pattern, ai_response, re.IGNORECASE)
     if match:
         ingredients = match.group(1).strip()
 
-    # Detect severity level (mild, moderate, severe)
+    # Extracting severity level
     severity_pattern = r"Severity:\s*(mild|moderate|severe)"
     match = re.search(severity_pattern, ai_response, re.IGNORECASE)
     if match:
         severity = match.group(1).strip()
 
-    # Detect reaction type
+    # Extracting reaction type
     reaction_pattern = r"Reaction:\s*([\w\s]+)"
     match = re.search(reaction_pattern, ai_response, re.IGNORECASE)
     if match:
         reaction = match.group(1).strip()
 
-    # Detect reaction location
+    # Extracting reaction location
     location_pattern = r"Location:\s*([\w\s]+)"
     match = re.search(location_pattern, ai_response, re.IGNORECASE)
     if match:
@@ -115,18 +118,18 @@ def extract_product_and_ingredients(ai_response):
 
     return product_name, ingredients, severity, reaction, location
 
-def save_product_to_db(user_id, product_name, ingredients, severity, reaction, location):
+def save_product_to_db(product_name, ingredients):
     """
-    Save detected products, ingredients, and reaction details to the database.
+    Save detected products and ingredients to the database.
     """
     conn = connect_db()
     cursor = conn.cursor()
 
-    print(f"Saving product to DB: user_id={user_id}, product={product_name}, ingredients={ingredients}, severity={severity}, reaction={reaction}, location={location}")
+    print(f"Saving product to DB: product={product_name}, ingredients={ingredients}")
 
     # Check if product already exists
-    query_check = "SELECT id FROM products WHERE user_id = %s AND product_name = %s"
-    cursor.execute(query_check, (user_id, product_name))
+    query_check = "SELECT id FROM products WHERE product_name = %s"
+    cursor.execute(query_check, (product_name,))
     existing_product = cursor.fetchone()
 
     if existing_product:
@@ -134,17 +137,13 @@ def save_product_to_db(user_id, product_name, ingredients, severity, reaction, l
         conn.close()
         return existing_product[0]
 
-    # Insert new product and symptom details
+    # Insert new product
     query_insert = """
-        INSERT INTO products (user_id, product_name, ingredients, detected_in_chat)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO products (product_name, ingredients)
+        VALUES (%s, %s)
     """
-    cursor.execute(query_insert, (user_id, product_name, ingredients, True))
+    cursor.execute(query_insert, (product_name, ingredients))
     product_id = cursor.lastrowid  # Get new product ID
-
-    # Save symptom details in the allergies table
-    if severity and reaction:
-        save_allergy_to_db(user_id, product_name, severity, reaction, location, product_id)
 
     conn.commit()
     print(f"Product saved with ID {product_id}")
@@ -168,7 +167,6 @@ def save_allergy_to_db(user_id, allergen_name, severity, reaction, location, pro
     cursor.execute(query, (user_id, allergen_name, severity, reaction, location, product_id))
     conn.commit()
     conn.close()
-
 
 def is_known_allergen(ingredient, user_id):
     """
@@ -221,7 +219,7 @@ def chat_with_ai(user_id, user_input, new_chat=False):
                 "\n- Ask for the type of reaction (e.g., itching, swelling, breathing difficulty)."
                 "\n- Ask where on the body the reaction occurred."
                 "\n- Ask for severity: mild, moderate, or severe."
-                "\n- Log severity and reaction using this format: 'Severity: <severity>. Reaction: <reaction>. Location: <location>'."
+                "\n- Log severity and reaction using this format: 'Product: <product>, Ingredients: <ingredients>, Severity: <severity>. Reaction: <reaction>. Location: <location>'."
 
                 "\n\n **Analyze Ingredients & Provide Insights**"
                 "\n- Compare detected ingredients with the user's past allergy records."
@@ -235,6 +233,8 @@ def chat_with_ai(user_id, user_input, new_chat=False):
                 "\n\n **Reminder:**"
                 "\n- You are NOT a doctor but can help users track their symptoms and suggest common allergens."
                 "\n- Keep responses natural, asking only one relevant question at a time."
+                "\n- Users cannot delete their allergies form the chat, they must do it from the profile page."
+                "Don't use ** in any of the chats"
 
             )},
             {"role": "system", "content": allergy_context} ] + 
@@ -248,7 +248,7 @@ def chat_with_ai(user_id, user_input, new_chat=False):
     product_name, ingredients, severity, reaction, location = extract_product_and_ingredients(ai_response)
 
     if product_name and ingredients:
-        product_id = save_product_to_db(user_id, product_name, ingredients, severity, reaction, location)
+        product_id = save_product_to_db(product_name, ingredients)
 
         if severity and reaction:
             save_allergy_to_db(user_id, product_name, severity, reaction, location, product_id)

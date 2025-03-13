@@ -34,7 +34,6 @@ CREATE TABLE allergies (
     user_id INT NOT NULL,
     allergen_name VARCHAR(255) NOT NULL,
     severity ENUM('mild', 'moderate', 'severe') NOT NULL,
-    ingredients TEXT,
     reaction VARCHAR(255),
     location VARCHAR(255),
     product_id INT,
