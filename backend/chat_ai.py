@@ -148,6 +148,8 @@ def save_product_to_db(product_name, ingredients):
     conn.commit()
     print(f"Product saved with ID {product_id}")
     conn.close()
+
+    print("Saved product to DB: ", product_name, ingredients)
     
     return product_id
 
@@ -167,6 +169,8 @@ def save_allergy_to_db(user_id, allergen_name, severity, reaction, location, pro
     cursor.execute(query, (user_id, allergen_name, severity, reaction, location, product_id))
     conn.commit()
     conn.close()
+
+    print("Saved allergies to DB", allergen_name, severity, reaction, location, product_id)
 
 def is_known_allergen(ingredient, user_id):
     """
@@ -234,7 +238,9 @@ def chat_with_ai(user_id, user_input, new_chat=False):
                 "\n- You are NOT a doctor but can help users track their symptoms and suggest common allergens."
                 "\n- Keep responses natural, asking only one relevant question at a time."
                 "\n- Users cannot delete their allergies form the chat, they must do it from the profile page."
-                "Don't use ** in any of the chats"
+                "\n- Always ask for ingredients, or try to assume but confirm with user."
+                "\n never surround the ingredients with "" or () when assuming."
+                "\n- Don't use ** in any of the chats"
 
             )},
             {"role": "system", "content": allergy_context} ] + 

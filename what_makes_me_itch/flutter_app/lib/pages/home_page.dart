@@ -340,7 +340,9 @@ class HomePageState extends State<HomePage> {
                       builder: (context) => AlertDialog(
                         title: Text("How to Use"),
                         content: Text(
-                            "Enter allergens manually or use voice input. Your data is analyzed for patterns but is not a medical diagnosis."),
+                            "Enter allergens manually or use voice input. Your data is analyzed for patterns but is not a medical diagnosis.",
+                            style: TextStyle(color: Colors.black),
+                        ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context),

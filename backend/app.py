@@ -120,7 +120,90 @@ def delete_message():
         cursor.close()
         conn.close()
 
+@app.route('/user/<int:user_id>', methods=['GET'])
+def get_user_data(user_id):
+    conn = connect_db()
+    cursor = conn.cursor(dictionary=True)
 
+    # Get user profile
+    cursor.execute("SELECT username, email FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+
+    if not user:
+        conn.close()
+        return jsonify({"error": "User not found"}), 404
+
+    # Get user allergies
+    severity_order = {"severe": 1, "moderate": 2, "mild": 3}  # Define order manually
+    cursor.execute("""
+        SELECT allergen_name, severity 
+        FROM allergies 
+        WHERE user_id = %s 
+        ORDER BY FIELD(severity, 'severe', 'moderate', 'mild')
+    """, (user_id,))
+
+    allergies = cursor.fetchall()
+    conn.close()
+    
+    print(allergies)
+
+    return jsonify({
+        "username": user["username"],
+        "email": user["email"],
+        "allergies": allergies
+    })
+
+@app.route('/update_user/<int:user_id>', methods=['PUT'])
+def update_user(user_id):
+    data = request.json
+    username = data.get('username')
+    email = data.get('email')
+
+    if not username or not email:
+        return jsonify({"error": "Missing username or email"}), 400
+
+    conn = connect_db()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute(
+            "UPDATE users SET username = %s, email = %s WHERE id = %s",
+            (username, email, user_id)
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({"message": "User updated successfully"})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/delete_allergy', methods=['DELETE'])
+def delete_allergy():
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        allergen_name = data.get('allergen_name')
+
+        if not user_id or not allergen_name:
+            return jsonify({"error": "Missing user_id or allergen_name"}), 400
+
+        
+        conn = connect_db()
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM allergies WHERE user_id = %s AND allergen_name = %s", (user_id, allergen_name))
+        conn.commit()
+
+        conn.close()
+
+        if cursor.rowcount == 0:
+            return jsonify({"error": "Allergen not found"}), 404
+
+        return jsonify({"message": "Allergen deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
