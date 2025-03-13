@@ -16,11 +16,13 @@ class HomePageState extends State<HomePage> {
   final TextEditingController _controller = TextEditingController();
   late stt.SpeechToText _speech;
   bool _isListening = false;
+  bool _isNewChat = true;
 
   @override
   void initState() {
     super.initState();
     _speech = stt.SpeechToText();
+    _isNewChat = true;
   }
 
   void _sendMessage() async {
@@ -41,7 +43,7 @@ class HomePageState extends State<HomePage> {
           body: jsonEncode({
             "user_id": "1",
             "message": userMessage,
-            "new_chat": messages.isEmpty // Start a new session if chat is empty
+            "new_chat": _isNewChat // Start a new session if chat is empty
           }),
         );
 
@@ -65,6 +67,11 @@ class HomePageState extends State<HomePage> {
               {"sender": "ai", "text": "Error: Could not connect to server."});
         });
       }
+
+      setState(() {
+        _isNewChat = false;
+      });
+
     }
   }
 
@@ -85,86 +92,112 @@ class HomePageState extends State<HomePage> {
     _speech.stop();
   }
 
-  void _editMessage(int index) {
-    TextEditingController editController =
-        TextEditingController(text: messages[index]["text"]);
+  void _editMessage(int index, String oldMessage) {
+  TextEditingController editController =
+      TextEditingController(text: messages[index]["text"]);
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Edit Message"),
-        content: TextField(
-          controller: editController,
-          decoration: InputDecoration(border: OutlineInputBorder()),
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text("Edit Message"),
+      content: TextField(
+        controller: editController,
+        decoration: InputDecoration(border: OutlineInputBorder()),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text("Cancel"),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              String editedText = editController.text;
+        TextButton(
+          onPressed: () async {
+            String editedText = editController.text;
 
-              if (editedText.isNotEmpty) {
+            if (editedText.isNotEmpty) {
+              // Attempt to update in the database first
+              bool success = await _updateMessageInDB(oldMessage, editedText);
+
+              if (success) {
+                // Only update UI if DB update was successful
                 setState(() {
-                  // Remove the original user message
-                  messages.removeAt(index);
-
-                  // Remove the AI response after the user message (if exists)
-                  if (index < messages.length &&
-                      messages[index]["sender"] == "ai") {
-                    messages.removeAt(index);
-                  }
-
-                  // Add the edited user message
-                  messages.add({"sender": "user", "text": editedText});
+                  messages[index]["text"] = editedText;
                 });
 
-                // Send the edited message to the backend
-                _sendEditedMessage(editedText);
+                // Show success message
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Message updated successfully!"),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+
+                // Close the dialog after success
+                Navigator.pop(context);
+              } else {
+                // Show error message
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Error: Could not update message."),
+                      backgroundColor: Colors.red,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
               }
+            }
+          },
+          child: Text("Update"),
+        ),
+      ],
+    ),
+  );
+}
 
-              Navigator.pop(context);
-            },
-            child: Text("Resend"),
-          ),
-        ],
-      ),
+
+
+  Future<bool> _updateMessageInDB(String oldMessage, String newMessage) async {
+  try {
+    var response = await http.put(
+      Uri.parse("http://127.0.0.1:5000/chat/edit"), // Flask API URL
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"old_message": oldMessage, "new_message": newMessage}),
     );
-  }
 
-  void _sendEditedMessage(String message) async {
-    try {
-      var response = await http.post(
-        Uri.parse(
-            "http://127.0.0.1:5000/chat"), // Update with actual Flask API URL
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"message": message}),
-      );
-
-      if (response.statusCode == 200) {
-        var data = jsonDecode(response.body);
-        setState(() {
-          messages.add({"sender": "ai", "text": data["response"]});
-        });
-      } else {
-        setState(() {
-          messages.add(
-              {"sender": "ai", "text": "Error: Unable to get a response."});
-        });
-      }
-    } catch (e) {
-      setState(() {
-        messages.add({
-          "sender": "ai",
-          "text": "Error: Unable to connect to the server."
-        });
-      });
+    if (response.statusCode == 200) {
+      return true; // Success
+    } else {
+      return false; // Error (e.g., invalid ID, server issue)
     }
+  } catch (e) {
+    return false; // Connection error or other issue
   }
+}
 
-  void _undoMessage(int index) {
+
+  void _undoMessage(int index) async {
+    String messageId = messages[index]["id"]?.toString() ?? "";
+
+    if (messageId.isEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text("Error"),
+          content: Text("Message ID is null or empty."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("OK"),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     setState(() {
       if (index < messages.length && messages[index]["sender"] == "user") {
         messages.removeAt(index);
@@ -173,6 +206,39 @@ class HomePageState extends State<HomePage> {
         }
       }
     });
+
+    await _deleteMessageFromDB(messageId);
+  }
+
+  Future<void> _deleteMessageFromDB(String messageId) async {
+    try {
+      var response = await http.delete(
+        Uri.parse("http://127.0.0.1:5000/chat/delete"), // Flask API URL
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"message_id": messageId}),
+      );
+
+      if (!mounted) return; // Prevents using context if widget is disposed
+
+      if (response.statusCode == 200) {
+        // Successfully deleted message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Message deleted successfully.")),
+        );
+      } else {
+        // Handle server error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: Unable to delete message.")),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return; // Prevents using context if widget is disposed
+
+      // Handle network errors (e.g., no connection, server down)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: Unable to connect to the server.")),
+      );
+    }
   }
 
   @override
@@ -214,7 +280,7 @@ class HomePageState extends State<HomePage> {
                           IconButton(
                             icon:
                                 Icon(Icons.edit, size: 18, color: Colors.grey),
-                            onPressed: () => _editMessage(index),
+                            onPressed: () => _editMessage(index, messages[index]["text"]!),
                           ),
                           IconButton(
                             icon: Icon(Icons.undo, size: 18, color: Colors.red),
