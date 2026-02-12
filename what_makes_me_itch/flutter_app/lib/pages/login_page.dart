@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'main_screen.dart';
 import '../theme/app_colors.dart';
 
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -18,6 +21,81 @@ class _LoginPageState extends State<LoginPage> {
   final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
 
+  String errorMessage = "";
+
+  // -------------------------
+  // LOGIN FUNCTION
+  // -------------------------
+  Future<void> loginUser() async {
+    setState(() => errorMessage = "");
+
+    final response = await http.post(
+      Uri.parse("http://127.0.0.1:5000/login"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "email": _emailController.text,
+        "password": _passwordController.text,
+      }),
+    );
+
+    print("LOGIN STATUS: ${response.statusCode}");
+    print("LOGIN BODY: ${response.body}");
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      // For now just navigate
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+      );
+    } else {
+      final data = jsonDecode(response.body);
+      setState(() {
+        errorMessage = data["error"] ?? "Login failed";
+      });
+    }
+  }
+
+  // -------------------------
+  // SIGNUP FUNCTION
+  // -------------------------
+  Future<void> signupUser() async {
+    setState(() => errorMessage = "");
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      setState(() => errorMessage = "Passwords do not match");
+      return;
+    }
+
+    final response = await http.post(
+      Uri.parse("http://127.0.0.1:5000/signup"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "name": _nameController.text,
+        "email": _emailController.text,
+        "password": _passwordController.text,
+      }),
+    );
+
+    print("SIGNUP STATUS: ${response.statusCode}");
+    print("SIGNUP BODY: ${response.body}");
+
+    if (response.statusCode == 201) {
+      // After successful signup, switch to login form
+      setState(() {
+        showSignupForm = false;
+        showLoginForm = true;
+        errorMessage = "Account created! Please log in.";
+      });
+    } else {
+      final data = jsonDecode(response.body);
+      setState(() {
+        errorMessage = data["error"] ?? "Signup failed";
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -33,11 +111,9 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo
                   Image.asset('Assets/FinalLogo.png', height: 150),
                   const SizedBox(height: 28),
 
-                  // Heading
                   Text(
                     showLoginForm
                         ? 'Log In'
@@ -55,209 +131,133 @@ class _LoginPageState extends State<LoginPage> {
 
                   const SizedBox(height: 30),
 
-                  // If neither form is showing then show buttons
                   if (!showLoginForm && !showSignupForm) ...[
                     SizedBox(
                       width: width,
                       child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.blueBtn,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 0,
-                        ),
                         onPressed: () {
                           setState(() {
                             showLoginForm = true;
                             showSignupForm = false;
                           });
                         },
-                        child: const Text(
-                          'Log In',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w700),
-                        ),
+                        child: const Text('Log In'),
                       ),
                     ),
                     const SizedBox(height: 12),
                     SizedBox(
                       width: width,
                       child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.coral,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 0,
-                        ),
                         onPressed: () {
                           setState(() {
                             showSignupForm = true;
                             showLoginForm = false;
                           });
                         },
-                        child: const Text(
-                          'Sign Up',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w700),
-                        ),
+                        child: const Text('Sign Up'),
                       ),
                     ),
                   ],
 
-                  // Login form
                   if (showLoginForm) ...[
                     const SizedBox(height: 20),
-                    SizedBox(
-                      width: 300,
-                      child: TextField(
-                        controller: _emailController,
-                        decoration: const InputDecoration(
-                          labelText: "Email",
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
+                    TextField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(
+                        labelText: "Email",
+                        border: OutlineInputBorder(),
+                        filled: true,
                       ),
                     ),
                     const SizedBox(height: 10),
-                    SizedBox(
-                      width: 300,
-                      child: TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: "Password",
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Center(
-                      child: TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          "Forgot Password?",
-                          style: TextStyle(color: AppColors.navyText),
-                        ),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: "Password",
+                        border: OutlineInputBorder(),
+                        filled: true,
                       ),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.blueBtn,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 50, vertical: 15),
-                      ),
-                      onPressed: () {
-                        // ADAM - I think we hav to connect the backend here but I don't
-                        // feel confident enough in flutter/flask so I figure you could help me
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const MainScreen()),
-                        );
-                      },
+                      onPressed: loginUser,
                       child: const Text("Login"),
                     ),
+                    const SizedBox(height: 10),
+                    if (errorMessage.isNotEmpty)
+                      Text(
+                        errorMessage,
+                        style: const TextStyle(color: Colors.red),
+                      ),
                     const SizedBox(height: 20),
                     TextButton(
                       onPressed: () {
                         setState(() {
                           showLoginForm = false;
+                          errorMessage = "";
                         });
                       },
                       child: const Text("Back"),
                     ),
                   ],
 
-                  // Signup form
                   if (showSignupForm) ...[
                     const SizedBox(height: 20),
-                    SizedBox(
-                      width: 300,
-                      child: TextField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: "Name",
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
+                    TextField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        labelText: "Name",
+                        border: OutlineInputBorder(),
+                        filled: true,
                       ),
                     ),
                     const SizedBox(height: 10),
-                    SizedBox(
-                      width: 300,
-                      child: TextField(
-                        controller: _emailController,
-                        decoration: const InputDecoration(
-                          labelText: "Email",
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
+                    TextField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(
+                        labelText: "Email",
+                        border: OutlineInputBorder(),
+                        filled: true,
                       ),
                     ),
                     const SizedBox(height: 10),
-                    SizedBox(
-                      width: 300,
-                      child: TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: "Password",
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: "Password",
+                        border: OutlineInputBorder(),
+                        filled: true,
                       ),
                     ),
                     const SizedBox(height: 10),
-                    SizedBox(
-                      width: 300,
-                      child: TextField(
-                        controller: _confirmPasswordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: "Confirm Password",
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Colors.white,
-                        ),
+                    TextField(
+                      controller: _confirmPasswordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: "Confirm Password",
+                        border: OutlineInputBorder(),
+                        filled: true,
                       ),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.coral,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 50, vertical: 15),
-                      ),
-                      onPressed: () {
-                        // ADAM Same here! How do I connect to backend/database?
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const MainScreen()),
-                        );
-                      },
+                      onPressed: signupUser,
                       child: const Text("Create Account"),
                     ),
+                    const SizedBox(height: 10),
+                    if (errorMessage.isNotEmpty)
+                      Text(
+                        errorMessage,
+                        style: const TextStyle(color: Colors.red),
+                      ),
                     const SizedBox(height: 20),
                     TextButton(
                       onPressed: () {
                         setState(() {
                           showSignupForm = false;
+                          errorMessage = "";
                         });
                       },
                       child: const Text("Back"),
@@ -265,18 +265,6 @@ class _LoginPageState extends State<LoginPage> {
                   ],
 
                   const SizedBox(height: 30),
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 16.0),
-                    child: Text(
-                      '"What Makes Me Itch" is not liable. Please see a doctor for more accurate results.',
-                      style: TextStyle(
-                        color: Color(0xFFC4C4C4),
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
                 ],
               ),
             ),
