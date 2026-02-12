@@ -77,7 +77,8 @@ class _LoginPageState extends State<LoginPage> {
                         },
                         child: const Text(
                           'Log In',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
@@ -102,7 +103,8 @@ class _LoginPageState extends State<LoginPage> {
                         },
                         child: const Text(
                           'Sign Up',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
@@ -147,20 +149,21 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 16),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.blueBtn,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 50, vertical: 15),
                       ),
                       onPressed: () {
                         // ADAM - I think we hav to connect the backend here but I don't
                         // feel confident enough in flutter/flask so I figure you could help me
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => const MainScreen()),
+                          MaterialPageRoute(
+                              builder: (context) => const MainScreen()),
                         );
                       },
                       child: const Text("Login"),
@@ -237,13 +240,15 @@ class _LoginPageState extends State<LoginPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.coral,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 50, vertical: 15),
                       ),
                       onPressed: () {
                         // ADAM Same here! How do I connect to backend/database?
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => const MainScreen()),
+                          MaterialPageRoute(
+                              builder: (context) => const MainScreen()),
                         );
                       },
                       child: const Text("Create Account"),

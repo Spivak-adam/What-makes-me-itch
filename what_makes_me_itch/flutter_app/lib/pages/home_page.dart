@@ -77,10 +77,8 @@ class HomePageState extends State<HomePage> {
     } catch (_) {
       setState(() {
         messages.removeLast();
-        messages.add({
-          "sender": "ai",
-          "text": "Error: Could not connect to server."
-        });
+        messages.add(
+            {"sender": "ai", "text": "Error: Could not connect to server."});
       });
     }
 
@@ -119,8 +117,9 @@ class HomePageState extends State<HomePage> {
                 final isUser = message["sender"] == "user";
 
                 return Column(
-                  crossAxisAlignment:
-                      isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                  crossAxisAlignment: isUser
+                      ? CrossAxisAlignment.end
+                      : CrossAxisAlignment.start,
                   children: [
                     /// Message bubble
                     Container(
@@ -128,8 +127,7 @@ class HomePageState extends State<HomePage> {
                           vertical: 10, horizontal: 14),
                       margin: const EdgeInsets.symmetric(vertical: 6),
                       decoration: BoxDecoration(
-                        color:
-                            isUser ? AppColors.teal : Colors.white,
+                        color: isUser ? AppColors.teal : Colors.white,
                         borderRadius: BorderRadius.circular(18),
                         boxShadow: const [
                           BoxShadow(
@@ -142,9 +140,7 @@ class HomePageState extends State<HomePage> {
                       child: Text(
                         message["text"]!,
                         style: TextStyle(
-                          color: isUser
-                              ? Colors.white
-                              : AppColors.navyText,
+                          color: isUser ? Colors.white : AppColors.navyText,
                         ),
                       ),
                     ),
@@ -152,8 +148,7 @@ class HomePageState extends State<HomePage> {
                     /// Save as Entry (AI only)
                     if (!isUser)
                       TextButton.icon(
-                        onPressed: () =>
-                            _saveAsEntry(message["text"]!),
+                        onPressed: () => _saveAsEntry(message["text"]!),
                         icon: const Icon(Icons.bookmark_border),
                         label: const Text("Save as Entry"),
                         style: TextButton.styleFrom(
@@ -192,7 +187,6 @@ class HomePageState extends State<HomePage> {
                     );
                   },
                 ),
-
                 Expanded(
                   child: TextField(
                     controller: _controller,
@@ -209,16 +203,13 @@ class HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-
                 IconButton(
                   icon: Icon(
                     _isListening ? Icons.mic : Icons.mic_none,
                     color: AppColors.teal,
                   ),
-                  onPressed:
-                      _isListening ? _stopListening : _startListening,
+                  onPressed: _isListening ? _stopListening : _startListening,
                 ),
-
                 IconButton(
                   icon: const Icon(Icons.send),
                   color: AppColors.coral,
