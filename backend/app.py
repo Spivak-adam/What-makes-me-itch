@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 import mysql.connector
 from chat_ai import chat_with_ai
 
+#for password management
+from werkzeug.security import generate_password_hash, check_password_hash
+
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -29,11 +33,87 @@ def chat():
 
     return f"Hello, this endpoint is working! Connected to database is {test}!"
 
+#endpoint for signing up
+@app.route("/signup", methods=["POST"])
+def signup():
+    data = request.json
+    username = data.get("name")
+    email = data.get("email")
+    password = data.get("password")
+
+    if not username or not email or not password:
+        return jsonify({"error": "Missing required fields"}), 400
+
+    conn = connect_db()
+    cursor = conn.cursor(dictionary=True)
+
+    # Check if email already exists
+    cursor.execute("SELECT id FROM users WHERE email = %s", (email,))
+    if cursor.fetchone():
+        conn.close()
+        return jsonify({"error": "Email already in use"}), 409
+
+    password_hash = generate_password_hash(password)
+
+    cursor.execute(
+        """
+        INSERT INTO users (username, email, password_hash)
+        VALUES (%s, %s, %s)
+        """,
+        (username, email, password_hash)
+    )
+
+    conn.commit()
+
+    user_id = cursor.lastrowid
+    conn.close()
+
+    return jsonify({
+        "message": "Account created successfully",
+        "user_id": user_id
+    }), 201
+
+
+#endpoint for logging in
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.json
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return jsonify({"error": "Missing email or password"}), 400
+
+    conn = connect_db()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute(
+        "SELECT id, password_hash FROM users WHERE email = %s",
+        (email,)
+    )
+    user = cursor.fetchone()
+    conn.close()
+
+    if not user or not check_password_hash(user["password_hash"], password):
+        return jsonify({"error": "Invalid email or password"}), 401
+
+    return jsonify({
+        "message": "Login successful",
+        "user_id": user["id"]
+    }), 200
+
+
 
 @app.route("/chat", methods=["POST"])
 def chat_with_user():
     data = request.json
-    user_id = data.get("user_id", "1")  # Default to "1" for testing
+
+    # added a real user tracker instead of defaulting to 1 for testing
+    user_id = data.get("user_id")
+    if not user_id:
+        return jsonify({"error": "User not authenticated"}), 401
+
+
     user_message = data.get("message", "")
     new_chat = data.get("new_chat", False)  # Determine if a new chat should start
 
