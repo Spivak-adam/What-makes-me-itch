@@ -6,7 +6,8 @@ import 'profile_page.dart';
 import '../theme/app_colors.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final int userId;
+  const MainScreen({super.key, required this.userId});
 
   @override
   MainScreenState createState() => MainScreenState();
@@ -15,21 +16,21 @@ class MainScreen extends StatefulWidget {
 class MainScreenState extends State<MainScreen> {
   int _selectedIndex = 1; // Home default
 
-  final List<Widget> _pages = [
-    ProfilePage(),
-    HomePage(),
-    //AnalyticsPage(), // simple placeholder
-    //AddEntryPage(),
-  ];
-
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
+    final pages = <Widget>[
+      ProfilePage(userId: widget.userId),
+      HomePage(userId: widget.userId),
+      const Center(child: Text("Analytics (stub)")),
+      const Center(child: Text("Add Entry (stub)")),
+    ];
+
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: pages[_selectedIndex],
 
       /// ✅ MOCKUP-STYLE BOTTOM NAV
       bottomNavigationBar: Container(
