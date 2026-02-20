@@ -70,3 +70,4 @@ CREATE TABLE exported_reports (
     exported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
