@@ -6,7 +6,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final int userId;
+  const HomePage({super.key, required this.userId});
 
   @override
   HomePageState createState() => HomePageState();
@@ -59,7 +60,7 @@ class HomePageState extends State<HomePage> {
         Uri.parse("http://127.0.0.1:5000/chat"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "user_id": "1",
+          "user_id": widget.userId,
           "message": userMessage,
           "new_chat": _isNewChat,
         }),
