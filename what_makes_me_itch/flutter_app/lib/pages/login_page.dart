@@ -43,11 +43,12 @@ class _LoginPageState extends State<LoginPage> {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
+      final int userId = data["user_id"];
 
       // For now just navigate
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const MainScreen()),
+        MaterialPageRoute(builder: (context) => MainScreen(userId: userId)),
       );
     } else {
       final data = jsonDecode(response.body);

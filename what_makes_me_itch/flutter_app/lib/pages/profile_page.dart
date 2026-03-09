@@ -5,7 +5,8 @@ import 'dart:convert';
 import 'custom_app_bar.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  final int userId;
+  const ProfilePage({super.key, required this.userId});
 
   @override
   ProfilePageState createState() => ProfilePageState();
@@ -16,12 +17,11 @@ class ProfilePageState extends State<ProfilePage> {
   bool isEditing = false;
   TextEditingController usernameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
-  int userId = 1; // Replace with dynamic user ID
 
   @override
   void initState() {
     super.initState();
-    userData = fetchUserData(userId);
+    userData = fetchUserData(widget.userId);
   }
 
   Future<Map<String, dynamic>> fetchUserData(int userId) async {
@@ -38,7 +38,7 @@ class ProfilePageState extends State<ProfilePage> {
   void _updateProfile() async {
     try {
       final response = await http.put(
-        Uri.parse('http://127.0.0.1:5000/update_user/$userId'),
+        Uri.parse('http://127.0.0.1:5000/update_user/${widget.userId}'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "username": usernameController.text,
@@ -49,7 +49,7 @@ class ProfilePageState extends State<ProfilePage> {
       if (response.statusCode == 200) {
         setState(() {
           isEditing = false;
-          userData = fetchUserData(userId);
+          userData = fetchUserData(widget.userId);
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -72,12 +72,15 @@ class ProfilePageState extends State<ProfilePage> {
       final response = await http.delete(
         Uri.parse('http://127.0.0.1:5000/delete_allergy'),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"user_id": userId, "allergen_name": allergenName}),
+        body: jsonEncode({
+          "user_id": widget.userId, // ✅ dynamic
+          "allergen_name": allergenName
+        }),
       );
 
       if (response.statusCode == 200) {
         setState(() {
-          userData = fetchUserData(userId);
+          userData = fetchUserData(widget.userId);
         });
 
         ScaffoldMessenger.of(context).showSnackBar(

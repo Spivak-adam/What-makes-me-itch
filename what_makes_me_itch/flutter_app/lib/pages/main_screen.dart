@@ -6,7 +6,8 @@ import 'analytics_page.dart';
 import '../theme/app_colors.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final int userId;
+  const MainScreen({super.key, required this.userId});
 
   @override
   MainScreenState createState() => MainScreenState();
@@ -28,8 +29,15 @@ class MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final pages = <Widget>[
+      ProfilePage(userId: widget.userId),
+      HomePage(userId: widget.userId),
+      const Center(child: Text("Analytics (stub)")),
+      const Center(child: Text("Add Entry (stub)")),
+    ];
+
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: pages[_selectedIndex],
 
       /// ✅ MOCKUP-STYLE BOTTOM NAV
       bottomNavigationBar: Container(
