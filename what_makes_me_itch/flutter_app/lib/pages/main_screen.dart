@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'profile_page.dart';
-//import 'add_entry_page.dart';
-//import 'analytics_page.dart'; // can be stub
+import 'add_entry_page.dart';
+import 'analytics_page.dart';
 import '../theme/app_colors.dart';
 
 class MainScreen extends StatefulWidget {
@@ -15,6 +15,13 @@ class MainScreen extends StatefulWidget {
 
 class MainScreenState extends State<MainScreen> {
   int _selectedIndex = 1; // Home default
+
+  final List<Widget> _pages = [
+    ProfilePage(),
+    HomePage(),
+    AnalyticsPage(),
+    AddEntryPage(),
+  ];
 
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
