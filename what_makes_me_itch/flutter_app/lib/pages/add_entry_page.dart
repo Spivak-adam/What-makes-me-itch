@@ -1,25 +1,29 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import '../theme/app_colors.dart';
 
 class AddEntryPage extends StatefulWidget {
-  const AddEntryPage({super.key});
+  final int userId;
+
+  const AddEntryPage({super.key, required this.userId});
 
   @override
   State<AddEntryPage> createState() => _AddEntryPageState();
 }
 
 class _AddEntryPageState extends State<AddEntryPage> {
-
   final TextEditingController triggerController = TextEditingController();
   final TextEditingController symptomController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
 
   DateTime? selectedDate;
+  bool isSaving = false;
 
   Future<void> pickDate() async {
     DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: selectedDate ?? DateTime.now(),
       firstDate: DateTime(2023),
       lastDate: DateTime(2030),
     );
@@ -31,17 +35,114 @@ class _AddEntryPageState extends State<AddEntryPage> {
     }
   }
 
+  String? formatDateForBackend(DateTime? date) {
+    if (date == null) return null;
+
+    final year = date.year.toString().padLeft(4, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+
+    return "$year-$month-$day 00:00:00";
+  }
+
+  Future<void> saveEntry() async {
+    final trigger = triggerController.text.trim();
+    final symptom = symptomController.text.trim();
+    final notes = notesController.text.trim();
+
+    if (trigger.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter an allergy trigger")),
+      );
+      return;
+    }
+
+    if (symptom.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a symptom")),
+      );
+      return;
+    }
+
+    setState(() {
+      isSaving = true;
+    });
+
+    try {
+      final uri = Uri.parse("http://127.0.0.1:5000/api/allergies");
+
+      // For physical device, use your computer's local IP instead:
+      // final uri = Uri.parse("http://192.168.1.100:5000/api/allergies");
+
+      final requestBody = {
+        "user_id": widget.userId,
+        "allergen_name": trigger,
+        "reaction": symptom,
+        "notes": notes.isEmpty ? null : notes,
+        "date_added": formatDateForBackend(selectedDate),
+      };
+
+      final response = await http.post(
+        uri,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(requestBody),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (!mounted) return;
+
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Entry saved successfully")),
+        );
+
+        triggerController.clear();
+        symptomController.clear();
+        notesController.clear();
+
+        setState(() {
+          selectedDate = null;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data["error"] ?? "Failed to save entry"),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error saving entry: $e")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSaving = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    triggerController.dispose();
+    symptomController.dispose();
+    notesController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
-
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: ListView(
             children: [
-
               const SizedBox(height: 10),
 
               /// PAGE HEADER
@@ -104,7 +205,12 @@ class _AddEntryPageState extends State<AddEntryPage> {
                     selectedDate == null
                         ? "Select Date"
                         : "${selectedDate!.month}/${selectedDate!.day}/${selectedDate!.year}",
-                    style: const TextStyle(fontSize: 16),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: selectedDate == null
+                          ? Colors.black54
+                          : Colors.black,
+                    ),
                   ),
                 ),
               ),
@@ -135,20 +241,24 @@ class _AddEntryPageState extends State<AddEntryPage> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  onPressed: () {
-                    /// For now just print values
-                    print(triggerController.text);
-                    print(symptomController.text);
-                    print(notesController.text);
-                    print(selectedDate);
-                  },
-                  child: const Text(
-                    "Save Entry",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  onPressed: isSaving ? null : saveEntry,
+                  child: isSaving
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          "Save Entry",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
 
@@ -191,7 +301,6 @@ class _InputCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
@@ -200,14 +309,11 @@ class _InputCard extends StatelessWidget {
             ),
             child: Icon(icon, color: AppColors.coral),
           ),
-
           const SizedBox(width: 14),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 Text(
                   label,
                   style: const TextStyle(
@@ -215,10 +321,8 @@ class _InputCard extends StatelessWidget {
                     color: Colors.black54,
                   ),
                 ),
-
                 const SizedBox(height: 5),
-
-                child
+                child,
               ],
             ),
           ),

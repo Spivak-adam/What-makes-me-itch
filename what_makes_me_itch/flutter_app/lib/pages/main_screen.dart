@@ -25,8 +25,8 @@ class MainScreenState extends State<MainScreen> {
     final pages = <Widget>[
       ProfilePage(userId: widget.userId),
       HomePage(userId: widget.userId),
-      AnalyticsPage(),
-      AddEntryPage(),
+      AnalyticsPage(userId: widget.userId),
+      AddEntryPage(userId: widget.userId),
     ];
 
     return Scaffold(
