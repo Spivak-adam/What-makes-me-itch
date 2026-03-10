@@ -146,7 +146,7 @@ class HomePageState extends State<HomePage> {
                     ),
 
                     /// Save as Entry (AI only)
-                    if (!isUser)
+                    /*if (!isUser)
                       TextButton.icon(
                         onPressed: () => _saveAsEntry(message["text"]!),
                         icon: const Icon(Icons.bookmark_border),
@@ -154,7 +154,7 @@ class HomePageState extends State<HomePage> {
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.coral,
                         ),
-                      ),
+                      ),*/
                   ],
                 );
               },
