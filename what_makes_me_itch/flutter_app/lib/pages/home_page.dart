@@ -5,6 +5,7 @@ import '../theme/app_colors.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+
 class HomePage extends StatefulWidget {
   final int userId;
   const HomePage({super.key, required this.userId});
@@ -146,7 +147,7 @@ class HomePageState extends State<HomePage> {
                     ),
 
                     /// Save as Entry (AI only)
-                    if (!isUser)
+                    /*if (!isUser)
                       TextButton.icon(
                         onPressed: () => _saveAsEntry(message["text"]!),
                         icon: const Icon(Icons.bookmark_border),
@@ -154,7 +155,7 @@ class HomePageState extends State<HomePage> {
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.coral,
                         ),
-                      ),
+                      ),*/
                   ],
                 );
               },

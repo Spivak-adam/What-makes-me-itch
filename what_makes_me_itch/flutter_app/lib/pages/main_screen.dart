@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
 import 'profile_page.dart';
-//import 'add_entry_page.dart';
-//import 'analytics_page.dart'; // can be stub
+import 'add_entry_page.dart';
+import 'analytics_page.dart';
 import '../theme/app_colors.dart';
 
 class MainScreen extends StatefulWidget {
@@ -25,8 +25,8 @@ class MainScreenState extends State<MainScreen> {
     final pages = <Widget>[
       ProfilePage(userId: widget.userId),
       HomePage(userId: widget.userId),
-      const Center(child: Text("Analytics (stub)")),
-      const Center(child: Text("Add Entry (stub)")),
+      AnalyticsPage(userId: widget.userId),
+      AddEntryPage(userId: widget.userId),
     ];
 
     return Scaffold(
