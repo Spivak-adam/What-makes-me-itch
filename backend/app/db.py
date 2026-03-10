@@ -1,23 +1,19 @@
 import os
 import mysql.connector
-from urllib.parse import urlparse
 
 def connect_db():
-    db_url = os.getenv("MYSQL_PUBLIC_URL")
 
-    # Production (Railway / Vercel)
-    if db_url:
-        parsed = urlparse(db_url)
-
+    # If running on Railway/Vercel (public DB)
+    if os.getenv("MYSQL_PUBLIC_HOST"):
         return mysql.connector.connect(
-            host=parsed.hostname,
-            port=parsed.port,
-            user=parsed.username,
-            password=parsed.password,
-            database=parsed.path.lstrip("/")
+            host=os.getenv("MYSQL_PUBLIC_HOST"),
+            port=int(os.getenv("MYSQL_PUBLIC_PORT", "3306")),
+            user=os.getenv("MYSQL_PUBLIC_USER"),
+            password=os.getenv("MYSQL_PUBLIC_PASSWORD"),
+            database=os.getenv("MYSQL_PUBLIC_DATABASE"),
         )
 
-    # Local development
+    # Otherwise assume local development
     return mysql.connector.connect(
         host=os.getenv("MYSQL_HOST", "localhost"),
         port=int(os.getenv("MYSQL_PORT", "3306")),
