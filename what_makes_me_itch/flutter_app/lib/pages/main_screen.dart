@@ -16,13 +16,6 @@ class MainScreen extends StatefulWidget {
 class MainScreenState extends State<MainScreen> {
   int _selectedIndex = 1; // Home default
 
-  final List<Widget> _pages = [
-    ProfilePage(),
-    HomePage(),
-    AnalyticsPage(),
-    AddEntryPage(),
-  ];
-
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
   }
