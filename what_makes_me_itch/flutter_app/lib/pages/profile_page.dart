@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
+import '../config/api_config.dart';
 import 'custom_app_bar.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -26,7 +26,7 @@ class ProfilePageState extends State<ProfilePage> {
 
   Future<Map<String, dynamic>> fetchUserData(int userId) async {
     final response =
-        await http.get(Uri.parse('http://127.0.0.1:5000/user/$userId'));
+        await http.get(Uri.parse('${ApiConfig.baseUrl}/user/$userId'));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -38,7 +38,7 @@ class ProfilePageState extends State<ProfilePage> {
   void _updateProfile() async {
     try {
       final response = await http.put(
-        Uri.parse('http://127.0.0.1:5000/update_user/${widget.userId}'),
+        Uri.parse('${ApiConfig.baseUrl}/update_user/${widget.userId}'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "username": usernameController.text,
@@ -70,7 +70,7 @@ class ProfilePageState extends State<ProfilePage> {
   void _deleteAllergen(String allergenName) async {
     try {
       final response = await http.delete(
-        Uri.parse('http://127.0.0.1:5000/delete_allergy'),
+        Uri.parse('${ApiConfig.baseUrl}/delete_allergy'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "user_id": widget.userId, // ✅ dynamic

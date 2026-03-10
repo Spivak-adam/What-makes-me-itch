@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:http/http.dart' as http;
 import '../theme/app_colors.dart';
+import '../config/api_config.dart';
 
 class AnalyticsPage extends StatefulWidget {
   final int userId;
@@ -39,8 +40,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       });
 
       // Android emulator
-      final uri = Uri.parse(
-        "http://127.0.0.1:5000/api/analytics/${widget.userId}",
+      final uri = Uri.parse("${ApiConfig.baseUrl}/api/analytics/${widget.userId}",
       );
 
       // If using physical phone, replace with your computer's local IP:

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../theme/app_colors.dart';
+import '../config/api_config.dart';
 
 class AddEntryPage extends StatefulWidget {
   final int userId;
@@ -69,7 +70,7 @@ class _AddEntryPageState extends State<AddEntryPage> {
     });
 
     try {
-      final uri = Uri.parse("http://127.0.0.1:5000/api/allergies");
+      final uri = Uri.parse("${ApiConfig.baseUrl}/api/allergies");
 
       // For physical device, use your computer's local IP instead:
       // final uri = Uri.parse("http://192.168.1.100:5000/api/allergies");

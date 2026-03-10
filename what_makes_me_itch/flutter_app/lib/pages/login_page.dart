@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'main_screen.dart';
 import '../theme/app_colors.dart';
+import '../config/api_config.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -30,7 +31,7 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => errorMessage = "");
 
     final response = await http.post(
-      Uri.parse("http://127.0.0.1:5000/login"),
+      Uri.parse("${ApiConfig.baseUrl}/login"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "email": _emailController.text,
@@ -70,7 +71,7 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     final response = await http.post(
-      Uri.parse("http://127.0.0.1:5000/signup"),
+      Uri.parse("${ApiConfig.baseUrl}/signup"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({
         "name": _nameController.text,

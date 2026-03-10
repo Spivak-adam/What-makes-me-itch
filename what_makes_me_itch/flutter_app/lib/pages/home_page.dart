@@ -4,7 +4,7 @@ import 'custom_app_bar.dart';
 import '../theme/app_colors.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
+import '../config/api_config.dart';
 
 class HomePage extends StatefulWidget {
   final int userId;
@@ -58,7 +58,7 @@ class HomePageState extends State<HomePage> {
 
     try {
       final response = await http.post(
-        Uri.parse("http://127.0.0.1:5000/chat"),
+        Uri.parse("${ApiConfig.baseUrl}/chat"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "user_id": widget.userId,
