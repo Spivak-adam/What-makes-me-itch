@@ -105,7 +105,7 @@ def add_allergy():
         cursor.close()
         conn.close()
 
-        
+
 @users_bp.route("/delete_allergy", methods=["DELETE"])
 def delete_allergy():
     data = request.get_json() or {}
@@ -137,3 +137,6 @@ def delete_allergy():
     finally:
         cursor.close()
         conn.close()
+
+
+    

@@ -12,10 +12,12 @@ def create_app():
     from .routes.auth import auth_bp
     from .routes.chat import chat_bp
     from .routes.users import users_bp
+    from .routes.analytics import analytics_bp  
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(chat_bp)
     app.register_blueprint(users_bp)
+    app.register_blueprint(analytics_bp)         
 
     # simple health check
     @app.route("/", methods=["GET"])
