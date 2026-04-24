@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../theme/app_colors.dart';
 import '../config/api_config.dart';
+import 'custom_app_bar.dart';
 
 class AddEntryPage extends StatefulWidget {
   final int userId;
@@ -19,7 +20,7 @@ class _AddEntryPageState extends State<AddEntryPage> {
   final TextEditingController notesController = TextEditingController();
 
   DateTime? selectedDate;
-  bool isSaving = false;
+  String selectedSeverity = "mild";
 
   Future<void> pickDate() async {
     DateTime? picked = await showDatePicker(
@@ -36,95 +37,20 @@ class _AddEntryPageState extends State<AddEntryPage> {
     }
   }
 
-  String? formatDateForBackend(DateTime? date) {
-    if (date == null) return null;
+  void showPopup(String message, {required bool isError}) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
-    final year = date.year.toString().padLeft(4, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-
-    return "$year-$month-$day 00:00:00";
-  }
-
-  Future<void> saveEntry() async {
-    final trigger = triggerController.text.trim();
-    final symptom = symptomController.text.trim();
-    final notes = notesController.text.trim();
-
-    if (trigger.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter an allergy trigger")),
-      );
-      return;
-    }
-
-    if (symptom.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a symptom")),
-      );
-      return;
-    }
-
-    setState(() {
-      isSaving = true;
-    });
-
-    try {
-      final uri = Uri.parse("${ApiConfig.baseUrl}/api/allergies");
-
-      // For physical device, use your computer's local IP instead:
-      // final uri = Uri.parse("http://192.168.1.100:5000/api/allergies");
-
-      final requestBody = {
-        "user_id": widget.userId,
-        "allergen_name": trigger,
-        "reaction": symptom,
-        "notes": notes.isEmpty ? null : notes,
-        "date_added": formatDateForBackend(selectedDate),
-      };
-
-      final response = await http.post(
-        uri,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode(requestBody),
-      );
-
-      final data = jsonDecode(response.body);
-
-      if (!mounted) return;
-
-      if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Entry saved successfully")),
-        );
-
-        triggerController.clear();
-        symptomController.clear();
-        notesController.clear();
-
-        setState(() {
-          selectedDate = null;
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data["error"] ?? "Failed to save entry"),
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error saving entry: $e")),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          isSaving = false;
-        });
-      }
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.redAccent : Colors.green,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(18),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+    );
   }
 
   @override
@@ -138,7 +64,7 @@ class _AddEntryPageState extends State<AddEntryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+      appBar: const CustomAppBar(title: "Add Entry"),
       backgroundColor: Colors.grey.shade100,
       body: SafeArea(
         child: Padding(
@@ -147,57 +73,134 @@ class _AddEntryPageState extends State<AddEntryPage> {
             children: [
               const SizedBox(height: 10),
 
-              /// PAGE HEADER
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.coral.withOpacity(.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(Icons.add, color: AppColors.coral, size: 28),
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: AppColors.coral.withOpacity(.12),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: AppColors.coral.withOpacity(.18),
                   ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    "Add Entry",
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline, color: AppColors.coral),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        "The more reactions and exposures you track, the more accurate your results will be for identifying possible allergens.",
+                        style: TextStyle(
+                          color: AppColors.navyText,
+                          fontSize: 14,
+                          height: 1.35,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
 
-              const SizedBox(height: 25),
+              const SizedBox(height: 22),
 
-              /// TRIGGER FIELD
               _InputCard(
                 icon: Icons.science,
                 label: "Allergy Trigger",
                 child: TextField(
                   controller: triggerController,
                   decoration: const InputDecoration(
-                    hintText: "Example: Dust, Pollen, Dairy",
+                    hintText: "Type a trigger, like dust, pollen, or dairy",
+                    hintStyle: TextStyle(
+                      color: Colors.black38,
+                      fontWeight: FontWeight.w400,
+                    ),
                     border: InputBorder.none,
+                    isDense: true,
                   ),
                 ),
               ),
 
-              /// SYMPTOM FIELD
               _InputCard(
                 icon: Icons.sick,
                 label: "Symptom",
                 child: TextField(
                   controller: symptomController,
                   decoration: const InputDecoration(
-                    hintText: "Example: Itchy Skin, Sneezing",
+                    hintText: "Type a symptom, like itchy skin or sneezing",
+                    hintStyle: TextStyle(
+                      color: Colors.black38,
+                      fontWeight: FontWeight.w400,
+                    ),
                     border: InputBorder.none,
+                    isDense: true,
                   ),
                 ),
               ),
 
-              /// DATE FIELD
+              _InputCard(
+                icon: Icons.warning_amber_rounded,
+                label: "Severity",
+                child: Row(
+                  children: ["mild", "moderate", "severe"].map((level) {
+                    final isSelected = selectedSeverity == level;
+
+                    Color color;
+                    if (level == "severe") {
+                      color = Colors.redAccent;
+                    } else if (level == "moderate") {
+                      color = Colors.orangeAccent;
+                    } else {
+                      color = Colors.green;
+                    }
+
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              selectedSeverity = level;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                              horizontal: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? color.withOpacity(.95)
+                                  : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isSelected
+                                    ? color
+                                    : Colors.grey.shade300,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                level[0].toUpperCase() + level.substring(1),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : AppColors.navyText,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+
               _InputCard(
                 icon: Icons.calendar_today,
                 label: "Date",
@@ -205,19 +208,18 @@ class _AddEntryPageState extends State<AddEntryPage> {
                   onTap: pickDate,
                   child: Text(
                     selectedDate == null
-                        ? "Select Date"
+                        ? "Tap to select a date"
                         : "${selectedDate!.month}/${selectedDate!.day}/${selectedDate!.year}",
                     style: TextStyle(
                       fontSize: 16,
                       color: selectedDate == null
-                          ? Colors.black54
-                          : Colors.black,
+                          ? Colors.black38
+                          : AppColors.navyText,
                     ),
                   ),
                 ),
               ),
 
-              /// NOTES FIELD
               _InputCard(
                 icon: Icons.notes,
                 label: "Notes",
@@ -225,29 +227,47 @@ class _AddEntryPageState extends State<AddEntryPage> {
                   controller: notesController,
                   maxLines: 3,
                   decoration: const InputDecoration(
-                    hintText: "Optional notes about the reaction",
+                    hintText: "Optional: add anything else you noticed",
+                    hintStyle: TextStyle(
+                      color: Colors.black38,
+                      fontWeight: FontWeight.w400,
+                    ),
                     border: InputBorder.none,
+                    isDense: true,
                   ),
                 ),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
 
-              /// SUBMIT BUTTON
               SizedBox(
                 height: 55,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.coral,
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   onPressed: () {
+                    if (triggerController.text.trim().isEmpty ||
+                        symptomController.text.trim().isEmpty ||
+                        selectedDate == null) {
+                      showPopup(
+                        "Please fill out trigger, symptom, and date.",
+                        isError: true,
+                      );
+                      return;
+                    }
+
+                    showPopup("Entry saved!", isError: false);
+
                     print("USER ID: ${widget.userId}");
-                    print("Trigger: ${triggerController.text}");
-                    print("Symptom: ${symptomController.text}");
-                    print("Notes: ${notesController.text}");
+                    print("Trigger: ${triggerController.text.trim()}");
+                    print("Symptom: ${symptomController.text.trim()}");
+                    print("Severity: $selectedSeverity");
+                    print("Notes: ${notesController.text.trim()}");
                     print("Date: $selectedDate");
                   },
                   child: const Text(
@@ -260,7 +280,7 @@ class _AddEntryPageState extends State<AddEntryPage> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 90),
             ],
           ),
         ),
@@ -269,7 +289,6 @@ class _AddEntryPageState extends State<AddEntryPage> {
   }
 }
 
-/// REUSABLE INPUT CARD
 class _InputCard extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -288,11 +307,12 @@ class _InputCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
             blurRadius: 10,
             color: Colors.black.withOpacity(.05),
+            offset: const Offset(0, 4),
           )
         ],
       ),
@@ -303,7 +323,7 @@ class _InputCard extends StatelessWidget {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: AppColors.coral.withOpacity(.15),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: AppColors.coral),
           ),
@@ -316,10 +336,11 @@ class _InputCard extends StatelessWidget {
                   label,
                   style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.black54,
+                    color: AppColors.navyText,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 7),
                 child,
               ],
             ),
