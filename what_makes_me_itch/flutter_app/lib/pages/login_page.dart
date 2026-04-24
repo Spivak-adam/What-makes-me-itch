@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'main_screen.dart';
 import '../theme/app_colors.dart';
 import '../config/api_config.dart';
+import 'loading_page.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -119,7 +120,7 @@ class _LoginPageState extends State<LoginPage> {
 
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => MainScreen(userId: userId)),
+          MaterialPageRoute(builder: (context) => LoadingPage(userId: userId)),
         );
       } else {
         showPopup(data["error"] ?? "Login failed.", isError: true);
