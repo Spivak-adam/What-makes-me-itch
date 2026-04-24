@@ -45,22 +45,22 @@ def signup():
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.json or {}
-    email = data.get("email")
+    username = data.get("username")
     password = data.get("password")
 
-    if not email or not password:
-        return jsonify({"error": "Missing email or password"}), 400
+    if not username or not password:
+        return jsonify({"error": "Missing username or password"}), 400
 
     conn = connect_db()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("SELECT id, password_hash FROM users WHERE email = %s", (email,))
+    cursor.execute("SELECT id, password_hash FROM users WHERE username = %s", (username,))
     user = cursor.fetchone()
 
     cursor.close()
     conn.close()
 
     if not user or not check_password_hash(user["password_hash"], password):
-        return jsonify({"error": "Invalid email or password"}), 401
+        return jsonify({"error": "Invalid username or password"}), 401
 
     return jsonify({"message": "Login successful", "user_id": user["id"]}), 200

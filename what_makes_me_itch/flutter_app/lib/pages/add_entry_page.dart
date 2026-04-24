@@ -164,7 +164,7 @@ class _AddEntryPageState extends State<AddEntryPage> {
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
                     ),
-                  )
+                  ),
                 ],
               ),
 
@@ -242,24 +242,20 @@ class _AddEntryPageState extends State<AddEntryPage> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  onPressed: isSaving ? null : saveEntry,
-                  child: isSaving
-                      ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          "Save Entry",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
+                  onPressed: () {
+                    print("USER ID: ${widget.userId}");
+                    print("Trigger: ${triggerController.text}");
+                    print("Symptom: ${symptomController.text}");
+                    print("Notes: ${notesController.text}");
+                    print("Date: $selectedDate");
+                  },
+                  child: const Text(
+                    "Save Entry",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
 
