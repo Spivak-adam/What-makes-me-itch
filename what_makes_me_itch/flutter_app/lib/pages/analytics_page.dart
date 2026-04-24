@@ -3,7 +3,9 @@ import 'package:fl_chart/fl_chart.dart';
 import '../theme/app_colors.dart';
 
 class AnalyticsPage extends StatelessWidget {
-  const AnalyticsPage({super.key});
+  final int userId;
+
+  const AnalyticsPage({super.key, required this.userId});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +16,6 @@ class AnalyticsPage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: ListView(
             children: [
-
               const SizedBox(height: 10),
 
               /// PAGE TITLE

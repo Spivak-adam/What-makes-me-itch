@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
 class AddEntryPage extends StatefulWidget {
-  const AddEntryPage({super.key});
+  final int userId;
+
+  const AddEntryPage({super.key, required this.userId});
 
   @override
   State<AddEntryPage> createState() => _AddEntryPageState();
 }
 
 class _AddEntryPageState extends State<AddEntryPage> {
-
   final TextEditingController triggerController = TextEditingController();
   final TextEditingController symptomController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
@@ -32,16 +33,22 @@ class _AddEntryPageState extends State<AddEntryPage> {
   }
 
   @override
+  void dispose() {
+    triggerController.dispose();
+    symptomController.dispose();
+    notesController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
-
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: ListView(
             children: [
-
               const SizedBox(height: 10),
 
               /// PAGE HEADER
@@ -62,7 +69,7 @@ class _AddEntryPageState extends State<AddEntryPage> {
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
                     ),
-                  )
+                  ),
                 ],
               ),
 
@@ -136,11 +143,11 @@ class _AddEntryPageState extends State<AddEntryPage> {
                     ),
                   ),
                   onPressed: () {
-                    /// For now just print values
-                    print(triggerController.text);
-                    print(symptomController.text);
-                    print(notesController.text);
-                    print(selectedDate);
+                    print("USER ID: ${widget.userId}");
+                    print("Trigger: ${triggerController.text}");
+                    print("Symptom: ${symptomController.text}");
+                    print("Notes: ${notesController.text}");
+                    print("Date: $selectedDate");
                   },
                   child: const Text(
                     "Save Entry",
@@ -191,7 +198,6 @@ class _InputCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
@@ -200,14 +206,11 @@ class _InputCard extends StatelessWidget {
             ),
             child: Icon(icon, color: AppColors.coral),
           ),
-
           const SizedBox(width: 14),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 Text(
                   label,
                   style: const TextStyle(
@@ -215,10 +218,8 @@ class _InputCard extends StatelessWidget {
                     color: Colors.black54,
                   ),
                 ),
-
                 const SizedBox(height: 5),
-
-                child
+                child,
               ],
             ),
           ),

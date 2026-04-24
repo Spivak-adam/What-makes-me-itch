@@ -7,6 +7,7 @@ import '../theme/app_colors.dart';
 
 class MainScreen extends StatefulWidget {
   final int userId;
+
   const MainScreen({super.key, required this.userId});
 
   @override
@@ -16,30 +17,23 @@ class MainScreen extends StatefulWidget {
 class MainScreenState extends State<MainScreen> {
   int _selectedIndex = 1; // Home default
 
-  final List<Widget> _pages = [
-    ProfilePage(),
-    HomePage(),
-    AnalyticsPage(),
-    AddEntryPage(),
-  ];
-
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
-    final pages = <Widget>[
+    final pages = [
       ProfilePage(userId: widget.userId),
       HomePage(userId: widget.userId),
-      const Center(child: Text("Analytics (stub)")),
-      const Center(child: Text("Add Entry (stub)")),
+      AnalyticsPage(userId: widget.userId),
+      AddEntryPage(userId: widget.userId),
     ];
 
     return Scaffold(
       body: pages[_selectedIndex],
 
-      /// ✅ MOCKUP-STYLE BOTTOM NAV
+      /// ✅ Bottom Navigation
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: AppColors.coral,

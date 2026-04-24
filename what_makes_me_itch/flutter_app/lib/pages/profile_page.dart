@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'custom_app_bar.dart';
+import 'login_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final int userId;
@@ -15,6 +16,8 @@ class ProfilePage extends StatefulWidget {
 class ProfilePageState extends State<ProfilePage> {
   late Future<Map<String, dynamic>> userData;
   bool isEditing = false;
+
+  TextEditingController nameController = TextEditingController();
   TextEditingController usernameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
 
@@ -22,6 +25,14 @@ class ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     userData = fetchUserData(widget.userId);
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    usernameController.dispose();
+    emailController.dispose();
+    super.dispose();
   }
 
   Future<Map<String, dynamic>> fetchUserData(int userId) async {
@@ -35,14 +46,23 @@ class ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  void _logout() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+      (route) => false,
+    );
+  }
+
   void _updateProfile() async {
     try {
       final response = await http.put(
         Uri.parse('http://127.0.0.1:5000/update_user/${widget.userId}'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "username": usernameController.text,
-          "email": emailController.text,
+          "name": nameController.text.trim(),
+          "username": usernameController.text.trim(),
+          "email": emailController.text.trim(),
         }),
       );
 
@@ -53,16 +73,16 @@ class ProfilePageState extends State<ProfilePage> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Profile updated successfully!")),
+          const SnackBar(content: Text("Profile updated successfully!")),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to update profile")),
+          const SnackBar(content: Text("Failed to update profile")),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error updating profile")),
+        const SnackBar(content: Text("Error updating profile")),
       );
     }
   }
@@ -73,8 +93,8 @@ class ProfilePageState extends State<ProfilePage> {
         Uri.parse('http://127.0.0.1:5000/delete_allergy'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "user_id": widget.userId, // ✅ dynamic
-          "allergen_name": allergenName
+          "user_id": widget.userId,
+          "allergen_name": allergenName,
         }),
       );
 
@@ -84,7 +104,7 @@ class ProfilePageState extends State<ProfilePage> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Allergen deleted successfully!")),
+          const SnackBar(content: Text("Allergen deleted successfully!")),
         );
       } else {
         final errorMessage = jsonDecode(response.body)['error'];
@@ -94,7 +114,7 @@ class ProfilePageState extends State<ProfilePage> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error deleting allergen")),
+        const SnackBar(content: Text("Error deleting allergen")),
       );
     }
   }
@@ -102,37 +122,40 @@ class ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(title: "Profile"),
+      appBar: const CustomAppBar(title: "Profile"),
       body: FutureBuilder<Map<String, dynamic>>(
-        key: UniqueKey(),
         future: userData,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text("Error: ${snapshot.error}"));
           } else if (!snapshot.hasData) {
-            return Center(child: Text("No data available"));
+            return const Center(child: Text("No data available"));
           }
 
           final data = snapshot.data!;
-          usernameController.text = data['username'];
-          emailController.text = data['email'];
+          nameController.text = data['name'] ?? "";
+          usernameController.text = data['username'] ?? "";
+          emailController.text = data['email'] ?? "";
           final allergens = data['allergies'] as List<dynamic>;
 
           return Padding(
-            padding: EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text("Personal Information",
-                    style: Theme.of(context).textTheme.titleLarge,
-                    textAlign: TextAlign.center),
-                SizedBox(height: 10),
+                Text(
+                  "Personal Information",
+                  style: Theme.of(context).textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+
                 Center(
                   child: Container(
                     width: 350,
-                    padding: EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.blue[100],
                       borderRadius: BorderRadius.circular(10),
@@ -142,48 +165,87 @@ class ProfilePageState extends State<ProfilePage> {
                       children: [
                         isEditing
                             ? TextField(
-                                controller: usernameController,
+                                controller: nameController,
                                 decoration:
-                                    InputDecoration(labelText: "Username"),
+                                    const InputDecoration(labelText: "Name"),
                               )
                             : Text(
-                                data['username'],
-                                style: TextStyle(
-                                    fontSize: 22, fontWeight: FontWeight.bold),
+                                data['name'] ?? "No name saved",
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                        SizedBox(height: 5),
+
+                        const SizedBox(height: 8),
+
+                        isEditing
+                            ? TextField(
+                                controller: usernameController,
+                                decoration: const InputDecoration(
+                                    labelText: "Username"),
+                              )
+                            : Text(
+                                "Username: ${data['username']}",
+                                style: const TextStyle(fontSize: 18),
+                              ),
+
+                        const SizedBox(height: 5),
+
                         isEditing
                             ? TextField(
                                 controller: emailController,
-                                decoration: InputDecoration(labelText: "Email"),
+                                decoration:
+                                    const InputDecoration(labelText: "Email"),
                               )
-                            : Text("Email: ${data['email']}",
-                                style: TextStyle(fontSize: 18)),
-                        SizedBox(height: 10),
-                        ElevatedButton(
-                          onPressed: () {
-                            if (isEditing) {
-                              _updateProfile();
-                            } else {
-                              setState(() {
-                                isEditing = true;
-                              });
-                            }
-                          },
-                          child: Text(isEditing ? "Save" : "Edit Information"),
+                            : Text(
+                                "Email: ${data['email']}",
+                                style: const TextStyle(fontSize: 18),
+                              ),
+
+                        const SizedBox(height: 12),
+
+                        Row(
+                          children: [
+                            ElevatedButton(
+                              onPressed: () {
+                                if (isEditing) {
+                                  _updateProfile();
+                                } else {
+                                  setState(() {
+                                    isEditing = true;
+                                  });
+                                }
+                              },
+                              child: Text(
+                                  isEditing ? "Save" : "Edit Information"),
+                            ),
+                            const SizedBox(width: 10),
+                            OutlinedButton.icon(
+                              onPressed: _logout,
+                              icon: const Icon(Icons.logout),
+                              label: const Text("Logout"),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
                 ),
-                SizedBox(height: 20),
-                Text("Potential Allergens",
-                    style: Theme.of(context).textTheme.titleLarge,
-                    textAlign: TextAlign.center),
-                SizedBox(height: 10),
+
+                const SizedBox(height: 20),
+
+                Text(
+                  "Potential Allergens",
+                  style: Theme.of(context).textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 10),
+
                 Expanded(
                   child: Container(
-                    padding: EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.grey[200],
                       borderRadius: BorderRadius.circular(10),
@@ -197,10 +259,12 @@ class ProfilePageState extends State<ProfilePage> {
                         return Card(
                           child: ListTile(
                             title: Text(allergen),
-                            subtitle: Text(severity,
-                                style: TextStyle(color: Colors.blue)),
+                            subtitle: Text(
+                              severity,
+                              style: const TextStyle(color: Colors.blue),
+                            ),
                             trailing: IconButton(
-                              icon: Icon(Icons.delete, color: Colors.red),
+                              icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () => _deleteAllergen(allergen),
                             ),
                           ),
