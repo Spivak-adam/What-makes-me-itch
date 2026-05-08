@@ -9,7 +9,7 @@ class ApiConfig {
 
   static String get baseUrl {
     if (kReleaseMode) {
-      return prodBaseUrl;
+      return localBaseUrl;
     } else {
       return localBaseUrl;
     }
