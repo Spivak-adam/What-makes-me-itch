@@ -32,7 +32,7 @@ def signup():
 
         cursor.execute(
             """
-            INSERT INTO users (name, username, email, password_hash)
+            INSERT INTO users (person_name, username, email, password_hash)
             VALUES (%s, %s, %s, %s)
             """,
             (name, username, email, password_hash),

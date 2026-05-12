@@ -42,27 +42,6 @@ def get_user_data(user_id):
         conn.close()
         return jsonify({"error": "User not found"}), 404
 
-    cursor.execute(
-        """
-        SELECT allergen_name, severity, date_added
-        FROM allergies
-        WHERE user_id = %s
-        ORDER BY (date_added)
-        """,
-        (user_id,),
-    )
-    allergies = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
-    return jsonify({
-        "username": user["username"],
-        "email": user["email"],
-        "allergies": allergies,
-
-    }), 200
-
 
 @users_bp.route("/update_user/<int:user_id>", methods=["PUT"])
 def update_user(user_id):
