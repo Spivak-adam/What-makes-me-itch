@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'main_screen.dart';
 import '../theme/app_colors.dart';
 import '../config/api_config.dart';
+import 'loading_page.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -17,85 +18,203 @@ class _LoginPageState extends State<LoginPage> {
   bool showLoginForm = false;
   bool showSignupForm = false;
 
+  final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _nameController = TextEditingController();
 
-  String errorMessage = "";
-
-  // -------------------------
-  // LOGIN FUNCTION
-  // -------------------------
-  Future<void> loginUser() async {
-    setState(() => errorMessage = "");
-
-    final response = await http.post(
-      Uri.parse("${ApiConfig.baseUrl}/login"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "email": _emailController.text,
-        "password": _passwordController.text,
-      }),
-    );
-
-    print("LOGIN STATUS: ${response.statusCode}");
-    print("LOGIN BODY: ${response.body}");
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final int userId = data["user_id"];
-
-      // For now just navigate
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => MainScreen(userId: userId)),
-      );
-    } else {
-      final data = jsonDecode(response.body);
-      setState(() {
-        errorMessage = data["error"] ?? "Login failed";
-      });
-    }
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _usernameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 
-  // -------------------------
-  // SIGNUP FUNCTION
-  // -------------------------
-  Future<void> signupUser() async {
-    setState(() => errorMessage = "");
+  void showPopup(String message, {required bool isError}) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
-    if (_passwordController.text != _confirmPasswordController.text) {
-      setState(() => errorMessage = "Passwords do not match");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline : Icons.check_circle_outline,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isError ? Colors.redAccent : Colors.green,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(18),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  String? validatePassword(String password) {
+    if (password.length < 8) {
+      return "Password must be at least 8 characters long.";
+    }
+
+    if (!RegExp(r'[A-Z]').hasMatch(password)) {
+      return "Password must include at least one uppercase letter.";
+    }
+
+    if (!RegExp(r'[a-z]').hasMatch(password)) {
+      return "Password must include at least one lowercase letter.";
+    }
+
+    if (!RegExp(r'[0-9]').hasMatch(password)) {
+      return "Password must include at least one number.";
+    }
+
+    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>_\-+=]').hasMatch(password)) {
+      return "Password must include at least one special character.";
+    }
+
+    return null;
+  }
+
+  Future<void> loginUser() async {
+    if (_usernameController.text.trim().isEmpty) {
+      showPopup("Please enter your username.", isError: true);
       return;
     }
 
-    final response = await http.post(
-      Uri.parse("${ApiConfig.baseUrl}/signup"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "name": _nameController.text,
-        "email": _emailController.text,
-        "password": _passwordController.text,
-      }),
-    );
-
-    print("SIGNUP STATUS: ${response.statusCode}");
-    print("SIGNUP BODY: ${response.body}");
-
-    if (response.statusCode == 201) {
-      // After successful signup, switch to login form
-      setState(() {
-        showSignupForm = false;
-        showLoginForm = true;
-        errorMessage = "Account created! Please log in.";
-      });
-    } else {
-      final data = jsonDecode(response.body);
-      setState(() {
-        errorMessage = data["error"] ?? "Signup failed";
-      });
+    if (_passwordController.text.isEmpty) {
+      showPopup("Please enter your password.", isError: true);
+      return;
     }
+
+    try {
+      final response = await http.post(
+        Uri.parse("http://127.0.0.1:5000/login"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "username": _usernameController.text.trim(),
+          "password": _passwordController.text,
+        }),
+      );
+
+      print("LOGIN STATUS: ${response.statusCode}");
+      print("LOGIN BODY: ${response.body}");
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        final int userId = data["user_id"];
+
+        if (!mounted) return;
+
+        showPopup("Login successful!", isError: false);
+
+        await Future.delayed(const Duration(milliseconds: 700));
+
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => LoadingPage(userId: userId)),
+        );
+      } else {
+        showPopup(data["error"] ?? "Login failed.", isError: true);
+      }
+    } catch (e) {
+      showPopup("Could not connect to the server.", isError: true);
+      print("LOGIN ERROR: $e");
+    }
+  }
+
+  Future<void> signupUser() async {
+    if (_nameController.text.trim().isEmpty) {
+      showPopup("Please enter your name.", isError: true);
+      return;
+    }
+
+    if (_usernameController.text.trim().isEmpty) {
+      showPopup("Please choose a username.", isError: true);
+      return;
+    }
+
+    if (_emailController.text.trim().isEmpty) {
+      showPopup("Please enter your email.", isError: true);
+      return;
+    }
+
+    if (!_emailController.text.trim().contains("@")) {
+      showPopup("Please enter a valid email address.", isError: true);
+      return;
+    }
+
+    final passwordError = validatePassword(_passwordController.text);
+    if (passwordError != null) {
+      showPopup(passwordError, isError: true);
+      return;
+    }
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      showPopup("Passwords do not match.", isError: true);
+      return;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse("http://127.0.0.1:5000/signup"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "name": _nameController.text.trim(),
+          "username": _usernameController.text.trim(),
+          "email": _emailController.text.trim(),
+          "password": _passwordController.text,
+        }),
+      );
+
+      print("SIGNUP STATUS: ${response.statusCode}");
+      print("SIGNUP BODY: ${response.body}");
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 201) {
+        showPopup("Account created! Please log in.", isError: false);
+
+        setState(() {
+          showSignupForm = false;
+          showLoginForm = true;
+        });
+
+        _passwordController.clear();
+        _confirmPasswordController.clear();
+      } else {
+        showPopup(data["error"] ?? "Signup failed.", isError: true);
+      }
+    } catch (e) {
+      showPopup("Could not connect to the server.", isError: true);
+      print("SIGNUP ERROR: $e");
+    }
+  }
+
+  void clearFields() {
+    _nameController.clear();
+    _usernameController.clear();
+    _emailController.clear();
+    _passwordController.clear();
+    _confirmPasswordController.clear();
   }
 
   @override
@@ -139,6 +258,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: ElevatedButton(
                         onPressed: () {
                           setState(() {
+                            clearFields();
                             showLoginForm = true;
                             showSignupForm = false;
                           });
@@ -152,6 +272,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: ElevatedButton(
                         onPressed: () {
                           setState(() {
+                            clearFields();
                             showSignupForm = true;
                             showLoginForm = false;
                           });
@@ -164,9 +285,9 @@ class _LoginPageState extends State<LoginPage> {
                   if (showLoginForm) ...[
                     const SizedBox(height: 20),
                     TextField(
-                      controller: _emailController,
+                      controller: _usernameController,
                       decoration: const InputDecoration(
-                        labelText: "Email",
+                        labelText: "Username",
                         border: OutlineInputBorder(),
                         filled: true,
                       ),
@@ -186,18 +307,12 @@ class _LoginPageState extends State<LoginPage> {
                       onPressed: loginUser,
                       child: const Text("Login"),
                     ),
-                    const SizedBox(height: 10),
-                    if (errorMessage.isNotEmpty)
-                      Text(
-                        errorMessage,
-                        style: const TextStyle(color: Colors.red),
-                      ),
                     const SizedBox(height: 20),
                     TextButton(
                       onPressed: () {
                         setState(() {
+                          clearFields();
                           showLoginForm = false;
-                          errorMessage = "";
                         });
                       },
                       child: const Text("Back"),
@@ -216,7 +331,17 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 10),
                     TextField(
+                      controller: _usernameController,
+                      decoration: const InputDecoration(
+                        labelText: "Username",
+                        border: OutlineInputBorder(),
+                        filled: true,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
                       controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
                         labelText: "Email",
                         border: OutlineInputBorder(),
@@ -229,6 +354,8 @@ class _LoginPageState extends State<LoginPage> {
                       obscureText: true,
                       decoration: const InputDecoration(
                         labelText: "Password",
+                        helperText:
+                            "8+ chars, uppercase, lowercase, number, special character",
                         border: OutlineInputBorder(),
                         filled: true,
                       ),
@@ -248,18 +375,12 @@ class _LoginPageState extends State<LoginPage> {
                       onPressed: signupUser,
                       child: const Text("Create Account"),
                     ),
-                    const SizedBox(height: 10),
-                    if (errorMessage.isNotEmpty)
-                      Text(
-                        errorMessage,
-                        style: const TextStyle(color: Colors.red),
-                      ),
                     const SizedBox(height: 20),
                     TextButton(
                       onPressed: () {
                         setState(() {
+                          clearFields();
                           showSignupForm = false;
-                          errorMessage = "";
                         });
                       },
                       child: const Text("Back"),

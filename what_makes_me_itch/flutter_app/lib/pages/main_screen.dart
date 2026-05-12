@@ -7,6 +7,7 @@ import '../theme/app_colors.dart';
 
 class MainScreen extends StatefulWidget {
   final int userId;
+
   const MainScreen({super.key, required this.userId});
 
   @override
@@ -22,7 +23,7 @@ class MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = <Widget>[
+    final pages = [
       ProfilePage(userId: widget.userId),
       HomePage(userId: widget.userId),
       AnalyticsPage(userId: widget.userId),
@@ -32,7 +33,7 @@ class MainScreenState extends State<MainScreen> {
     return Scaffold(
       body: pages[_selectedIndex],
 
-      /// ✅ MOCKUP-STYLE BOTTOM NAV
+      /// ✅ Bottom Navigation
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: AppColors.coral,
