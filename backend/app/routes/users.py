@@ -18,10 +18,10 @@ def get_user_data(user_id):
 
     cursor.execute(
         """
-        SELECT allergen_name, severity
+        SELECT allergen_name, severity, date_added
         FROM allergies
         WHERE user_id = %s
-        ORDER BY FIELD(severity, 'severe', 'moderate', 'mild')
+        ORDER BY (date_added)
         """,
         (user_id,),
     )
@@ -33,7 +33,8 @@ def get_user_data(user_id):
     return jsonify({
         "username": user["username"],
         "email": user["email"],
-        "allergies": allergies
+        "allergies": allergies,
+
     }), 200
 
 

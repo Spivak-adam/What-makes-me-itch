@@ -1,4 +1,3 @@
-/*PostgreSQL*/
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) NOT NULL UNIQUE,
@@ -71,4 +70,3 @@ CREATE TABLE exported_reports (
     exported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-
