@@ -27,7 +27,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   Future<Map<String, dynamic>> fetchAnalytics() async {
     final response = await http.get(
-      Uri.parse('http://127.0.0.1:5000/analytics/${widget.userId}'),
+      Uri.parse('${ApiConfig.baseUrl}/analytics/${widget.userId}'),
     );
 
     if (response.statusCode == 200) {

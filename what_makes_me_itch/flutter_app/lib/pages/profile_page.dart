@@ -110,7 +110,7 @@ class ProfilePageState extends State<ProfilePage> {
   void _addAllergy(String allergenName, String severity) async {
     try {
       final response = await http.post(
-        Uri.parse('http://127.0.0.1:5000/add_allergy'),
+        Uri.parse('${ApiConfig.baseUrl}/add_allergy'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "user_id": widget.userId,
