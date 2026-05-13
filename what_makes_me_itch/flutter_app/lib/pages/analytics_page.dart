@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:convert';
-
+import '../config/api_config.dart';
 import '../theme/app_colors.dart';
 import 'custom_app_bar.dart';
 
