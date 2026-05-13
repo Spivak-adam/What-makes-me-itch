@@ -23,7 +23,7 @@ class MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
+    final pages = <Widget>[
       ProfilePage(userId: widget.userId),
       HomePage(userId: widget.userId),
       AnalyticsPage(userId: widget.userId),
