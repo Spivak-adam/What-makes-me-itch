@@ -24,8 +24,8 @@ def create_allergy_entry(user_id, allergen_name, reaction, notes=None, date_adde
                 INSERT INTO allergies (
                     user_id,
                     allergen_name,
-                    severity,
                     reaction,
+                    severity,
                     location,
                     product_id,
                     date_added
@@ -35,8 +35,8 @@ def create_allergy_entry(user_id, allergen_name, reaction, notes=None, date_adde
             values = (
                 user_id,
                 allergen_name,
-                severity,
                 reaction,
+                severity,
                 location_value,
                 None,
                 date_added
@@ -56,8 +56,8 @@ def create_allergy_entry(user_id, allergen_name, reaction, notes=None, date_adde
             values = (
                 user_id,
                 allergen_name,
-                severity,
                 reaction,
+                severity,
                 location_value,
                 None
             )

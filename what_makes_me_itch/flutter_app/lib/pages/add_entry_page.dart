@@ -95,6 +95,7 @@ class _AddEntryPageState extends State<AddEntryPage> {
         "user_id": widget.userId,
         "allergen_name": trigger,
         "reaction": symptom,
+        "severity": selectedSeverity,
         "notes": notes.isEmpty ? null : notes,
         "date_added": formatDateForBackend(selectedDate),
       };
@@ -347,12 +348,12 @@ class _AddEntryPageState extends State<AddEntryPage> {
                     showPopup("Entry saved!", isError: false);
                     
 
-                    print("USER ID: ${widget.userId}");
-                    print("Trigger: ${triggerController.text.trim()}");
-                    print("Symptom: ${symptomController.text.trim()}");
-                    print("Severity: $selectedSeverity");
-                    print("Notes: ${notesController.text.trim()}");
-                    print("Date: $selectedDate");
+                      print("USER ID: ${widget.userId}");
+                      print("Trigger: ${triggerController.text.trim()}");
+                      print("Symptom: ${symptomController.text.trim()}");
+                      print("Severity: $selectedSeverity");
+                      print("Notes: ${notesController.text.trim()}");
+                      print("Date: $selectedDate");
                     }
                   },
                   child: const Text(

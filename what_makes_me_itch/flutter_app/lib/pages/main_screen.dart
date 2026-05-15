@@ -3,6 +3,7 @@ import 'home_page.dart';
 import 'profile_page.dart';
 import 'add_entry_page.dart';
 import 'analytics_page.dart';
+import 'scanner.dart';
 import '../theme/app_colors.dart';
 
 class MainScreen extends StatefulWidget {
@@ -26,6 +27,7 @@ class MainScreenState extends State<MainScreen> {
     final pages = <Widget>[
       ProfilePage(userId: widget.userId),
       HomePage(userId: widget.userId),
+      BarcodeEntryPage(userId: widget.userId),
       AnalyticsPage(userId: widget.userId),
       AddEntryPage(userId: widget.userId),
     ];
@@ -59,6 +61,10 @@ class MainScreenState extends State<MainScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.home),
               label: "Home",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.barcode_reader),
+              label: "Scan",
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.bar_chart),

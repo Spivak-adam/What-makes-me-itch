@@ -20,6 +20,7 @@ def add_allergy_entry():
         allergen_name = data.get("allergen_name")
         reaction = data.get("reaction")
         notes = data.get("notes")
+        severity = data.get("severity")
         date_added = data.get("date_added")
 
         if not user_id:
@@ -51,6 +52,7 @@ def add_allergy_entry():
             user_id=user_id,
             allergen_name=allergen_name.strip(),
             reaction=reaction.strip(),
+            severity=severity,
             notes=notes.strip() if notes else None,
             date_added=parsed_date
         )
@@ -62,3 +64,47 @@ def add_allergy_entry():
             "error": "Failed to save allergy entry",
             "details": str(e)
         }), 500
+    
+@allergy_entries_bp.route("/api/scanned-product-entry", methods=["POST"])
+def save_scanned_product_entry():
+    data = request.get_json()
+
+    user_id = data.get("user_id")
+    product_name = data.get("product_name")
+    ingredients = data.get("ingredients") or "No ingredients found"
+    allergen_name = data.get("allergen_name")
+    severity = data.get("severity")
+    reaction = data.get("reaction")
+    date_added = data.get("date_added")
+
+    conn = connect_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO products (product_name, ingredients)
+        VALUES (%s, %s)
+        ON CONFLICT (product_name)
+        DO UPDATE SET ingredients = EXCLUDED.ingredients
+        RETURNING id;
+    """, (product_name, ingredients))
+
+    product_id = cur.fetchone()[0]
+
+    cur.execute("""
+        INSERT INTO allergies
+        (user_id, allergen_name, severity, reaction, product_id, date_added)
+        VALUES (%s, %s, %s, %s, %s, COALESCE(%s, CURRENT_TIMESTAMP));
+    """, (
+        user_id,
+        allergen_name,
+        severity,
+        reaction,
+        product_id,
+        date_added,
+    ))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return jsonify({"message": "Scanned product reaction saved"}), 201
