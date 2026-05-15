@@ -11,7 +11,7 @@ def get_user_data(user_id):
 
     try:
         cursor.execute(
-            "SELECT name, username, email FROM users WHERE id = %s",
+            "SELECT person_name, username, email FROM users WHERE id = %s",
             (user_id,),
         )
         user = cursor.fetchone()
@@ -24,14 +24,14 @@ def get_user_data(user_id):
             SELECT allergen_name, severity
             FROM allergies
             WHERE user_id = %s
-            ORDER BY FIELD(severity, 'severe', 'moderate', 'mild')
+            ORDER BY ('date')
             """,
             (user_id,),
         )
         allergies = cursor.fetchall()
 
         return jsonify({
-            "name": user["name"],
+            "name": user["person_name"],
             "username": user["username"],
             "email": user["email"],
             "allergies": allergies
@@ -40,7 +40,6 @@ def get_user_data(user_id):
     finally:
         cursor.close()
         conn.close()
-        return jsonify({"error": "User not found"}), 404
 
 
 @users_bp.route("/update_user/<int:user_id>", methods=["PUT"])
@@ -139,5 +138,12 @@ def delete_allergy():
         cursor.close()
         conn.close()
 
-
-    
+@users_bp.route("/user/test", methods=["GET"])
+def test_response():
+    print("TESTING ENDPOINTS")
+    return jsonify({
+            "name": "test",
+            "username": "muzy",
+            "email": "as@tl.com",
+            "allergies": "allergies"
+        }), 200

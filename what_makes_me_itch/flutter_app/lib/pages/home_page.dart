@@ -51,7 +51,7 @@ class HomePageState extends State<HomePage> {
 
     setState(() {
       messages.add({"sender": "user", "text": userMessage});
-      messages.add({"sender": "ai", "text": "Typing..."});
+      messages.add({"sender": "ai", "text": "Thinking.."});
     });
 
     _controller.clear();

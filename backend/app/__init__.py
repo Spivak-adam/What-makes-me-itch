@@ -29,8 +29,8 @@ def create_app():
     from .routes.auth import auth_bp
     from .routes.chat import chat_bp
     from .routes.users import users_bp
-    from app.routes.analytics import analytics_bp
-    from app.routes.allergy_entries import allergy_entries_bp
+    from .routes.analytics import analytics_bp
+    from .routes.allergy_entries import allergy_entries_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(chat_bp)

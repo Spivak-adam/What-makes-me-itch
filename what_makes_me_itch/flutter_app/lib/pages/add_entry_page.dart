@@ -14,6 +14,8 @@ class AddEntryPage extends StatefulWidget {
   State<AddEntryPage> createState() => _AddEntryPageState();
 }
 
+
+
 class _AddEntryPageState extends State<AddEntryPage> {
   final TextEditingController triggerController = TextEditingController();
   final TextEditingController symptomController = TextEditingController();
@@ -21,6 +23,7 @@ class _AddEntryPageState extends State<AddEntryPage> {
 
   DateTime? selectedDate;
   String selectedSeverity = "mild";
+  bool isSaving = false;
 
   Future<void> pickDate() async {
     DateTime? picked = await showDatePicker(
@@ -52,6 +55,85 @@ class _AddEntryPageState extends State<AddEntryPage> {
       ),
     );
   }
+  
+  String? formatDateForBackend(DateTime? date) {
+    if (date == null) return null;
+
+    final year = date.year.toString().padLeft(4, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+
+    return "$year-$month-$day 00:00:00";
+  }
+
+  Future<void> saveEntry() async {
+    final trigger = triggerController.text.trim();
+    final symptom = symptomController.text.trim();
+    final notes = notesController.text.trim();
+
+    if (trigger.isEmpty) {
+      showPopup("Please enter an allergy trigger", isError: false);
+      return;
+    }
+
+    if (symptom.isEmpty) {
+      showPopup("Please enter a symptom", isError: false);
+      return;
+    }
+
+    setState(() {
+      isSaving = true;
+    });
+
+    try {
+      final uri = Uri.parse("${ApiConfig.baseUrl}/api/allergies");
+
+      // For physical device, use your computer's local IP instead:
+      // final uri = Uri.parse("http://192.168.1.100:5000/api/allergies");
+
+      final requestBody = {
+        "user_id": widget.userId,
+        "allergen_name": trigger,
+        "reaction": symptom,
+        "notes": notes.isEmpty ? null : notes,
+        "date_added": formatDateForBackend(selectedDate),
+      };
+
+      final response = await http.post(
+        uri,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(requestBody),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (!mounted) return;
+
+      if (response.statusCode == 201) {
+        showPopup("Entry saved successfully", isError: false);
+
+        triggerController.clear();
+        symptomController.clear();
+        notesController.clear();
+
+        setState(() {
+          selectedDate = null;
+        });
+      } else {
+        showPopup("Failed to save entry", isError: true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      showPopup("Failed to save entry", isError: true);
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSaving = false;
+        });
+      }
+    }
+  }
+  
 
   @override
   void dispose() {
@@ -260,8 +342,10 @@ class _AddEntryPageState extends State<AddEntryPage> {
                       );
                       return;
                     }
-
+                    else{
+                    saveEntry();
                     showPopup("Entry saved!", isError: false);
+                    
 
                     print("USER ID: ${widget.userId}");
                     print("Trigger: ${triggerController.text.trim()}");
@@ -269,6 +353,7 @@ class _AddEntryPageState extends State<AddEntryPage> {
                     print("Severity: $selectedSeverity");
                     print("Notes: ${notesController.text.trim()}");
                     print("Date: $selectedDate");
+                    }
                   },
                   child: const Text(
                     "Save Entry",
