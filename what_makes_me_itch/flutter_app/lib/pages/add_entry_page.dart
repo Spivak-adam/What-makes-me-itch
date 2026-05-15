@@ -348,12 +348,12 @@ class _AddEntryPageState extends State<AddEntryPage> {
                     showPopup("Entry saved!", isError: false);
                     
 
-                    print("USER ID: ${widget.userId}");
-                    print("Trigger: ${triggerController.text.trim()}");
-                    print("Symptom: ${symptomController.text.trim()}");
-                    print("Severity: $selectedSeverity");
-                    print("Notes: ${notesController.text.trim()}");
-                    print("Date: $selectedDate");
+                      print("USER ID: ${widget.userId}");
+                      print("Trigger: ${triggerController.text.trim()}");
+                      print("Symptom: ${symptomController.text.trim()}");
+                      print("Severity: $selectedSeverity");
+                      print("Notes: ${notesController.text.trim()}");
+                      print("Date: $selectedDate");
                     }
                   },
                   child: const Text(

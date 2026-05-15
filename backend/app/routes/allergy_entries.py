@@ -20,7 +20,7 @@ def add_allergy_entry():
         allergen_name = data.get("allergen_name")
         reaction = data.get("reaction")
         notes = data.get("notes")
-        severity = data.get("serverity")
+        severity = data.get("severity")
         date_added = data.get("date_added")
 
         if not user_id:
@@ -52,8 +52,8 @@ def add_allergy_entry():
             user_id=user_id,
             allergen_name=allergen_name.strip(),
             reaction=reaction.strip(),
+            severity=severity,
             notes=notes.strip() if notes else None,
-            severity=reaction.strip(),
             date_added=parsed_date
         )
 

@@ -10,6 +10,7 @@ def create_allergy_entry(user_id, allergen_name, reaction, severity, notes=None,
         conn = connect_db()
         cursor = conn.cursor(dictionary=True)
 
+
         # Notes do not have a direct column in your schema.
         # For now, store them in location only if you want something saved there,
         # but semantically this is not ideal. Better long-term fix is adding a notes column.
@@ -20,8 +21,8 @@ def create_allergy_entry(user_id, allergen_name, reaction, severity, notes=None,
                 INSERT INTO allergies (
                     user_id,
                     allergen_name,
-                    severity,
                     reaction,
+                    severity,
                     location,
                     product_id,
                     date_added
@@ -31,8 +32,8 @@ def create_allergy_entry(user_id, allergen_name, reaction, severity, notes=None,
             values = (
                 user_id,
                 allergen_name,
-                severity,
                 reaction,
+                severity,
                 location_value,
                 None,
                 date_added
@@ -52,8 +53,8 @@ def create_allergy_entry(user_id, allergen_name, reaction, severity, notes=None,
             values = (
                 user_id,
                 allergen_name,
-                severity,
                 reaction,
+                severity,
                 location_value,
                 None
             )
