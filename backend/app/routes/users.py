@@ -24,7 +24,7 @@ def get_user_data(user_id):
             SELECT allergen_name, severity
             FROM allergies
             WHERE user_id = %s
-            ORDER BY ('date')
+            ORDER BY ('date_added')
             """,
             (user_id,),
         )
