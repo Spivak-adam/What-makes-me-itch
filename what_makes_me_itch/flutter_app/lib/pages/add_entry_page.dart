@@ -95,6 +95,7 @@ class _AddEntryPageState extends State<AddEntryPage> {
         "user_id": widget.userId,
         "allergen_name": trigger,
         "reaction": symptom,
+        "severity": selectedSeverity,
         "notes": notes.isEmpty ? null : notes,
         "date_added": formatDateForBackend(selectedDate),
       };
