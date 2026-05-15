@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:intl/intl.dart';
 import '../config/api_config.dart';
 import 'custom_app_bar.dart';
 import 'login_page.dart';
@@ -17,6 +18,8 @@ class ProfilePage extends StatefulWidget {
 class ProfilePageState extends State<ProfilePage> {
   late Future<Map<String, dynamic>> userData;
   bool isEditing = false;
+  String selectedSeverityFilter = "all";
+  String selectedSort = "severity";
 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
@@ -250,6 +253,102 @@ class ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  int _severityRank(String severity) {
+    switch (severity.toLowerCase()) {
+      case "severe":
+        return 0;
+      case "moderate":
+        return 1;
+      case "mild":
+        return 2;
+      default:
+        return 3;
+    }
+  }
+
+  DateTime? _parseAllergenDate(dynamic rawDate) {
+    if (rawDate == null) return null;
+    try {
+      return DateTime.parse(rawDate.toString());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _formatAllergenDate(dynamic rawDate) {
+    final parsed = _parseAllergenDate(rawDate);
+    if (parsed == null) return "Date unavailable";
+    return DateFormat.yMMMd().add_jm().format(parsed.toLocal());
+  }
+
+  String _allergenInfo(String allergenName) {
+    final lookup = allergenName.toLowerCase();
+    if (lookup.contains("peanut")) {
+      return "Peanut allergy can trigger severe reactions. Common sources include snacks, sauces, baked goods, and cross-contact during food prep.";
+    }
+    if (lookup.contains("dairy") || lookup.contains("milk")) {
+      return "Dairy allergens are commonly found in milk, cheese, butter, cream, and many processed foods.";
+    }
+    if (lookup.contains("egg")) {
+      return "Egg allergy may involve both egg whites and yolks. Eggs can appear in baked foods, dressings, and some vaccines.";
+    }
+    if (lookup.contains("shellfish") || lookup.contains("shrimp")) {
+      return "Shellfish allergies often include shrimp, crab, and lobster. Reactions can be severe even with trace exposure.";
+    }
+    if (lookup.contains("soy")) {
+      return "Soy can appear in sauces, protein products, oils, and packaged foods under different ingredient names.";
+    }
+    return "Track this allergen carefully and review food labels, ingredient lists, and possible cross-contact sources.";
+  }
+
+  void _showAllergenDetails(Map<String, dynamic> allergenEntry) {
+    final allergenName = allergenEntry['allergen_name'] ?? "Unknown";
+    final severity = allergenEntry['severity'] ?? "unknown";
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(allergenName),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Severity: ${severity[0].toUpperCase()}${severity.substring(1)}",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: _severityColor(severity),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(_allergenInfo(allergenName)),
+            const SizedBox(height: 12),
+            const Text(
+              "Tip: Verify ingredients when trying new foods and keep emergency medicine available if prescribed.",
+              style: TextStyle(color: Colors.black54),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Close"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteAllergen(allergenName);
+            },
+            child: const Text(
+              "Delete",
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -267,6 +366,41 @@ class ProfilePageState extends State<ProfilePage> {
 
           final data = snapshot.data!;
           final allergens = data['allergies'] as List<dynamic>;
+          final filteredAndSortedAllergens = allergens
+              .where((allergen) =>
+                  selectedSeverityFilter == "all" ||
+                  allergen['severity'] == selectedSeverityFilter)
+              .toList()
+            ..sort((a, b) {
+              if (selectedSort == "name") {
+                return a['allergen_name']
+                    .toString()
+                    .toLowerCase()
+                    .compareTo(b['allergen_name'].toString().toLowerCase());
+              }
+              if (selectedSort == "date") {
+                final dateA = _parseAllergenDate(a['date_added']);
+                final dateB = _parseAllergenDate(b['date_added']);
+                if (dateA == null && dateB == null) {
+                  return a['allergen_name']
+                      .toString()
+                      .toLowerCase()
+                      .compareTo(b['allergen_name'].toString().toLowerCase());
+                }
+                if (dateA == null) return 1;
+                if (dateB == null) return -1;
+                return dateB.compareTo(dateA);
+              }
+              final severityCompare =
+                  _severityRank(a['severity']).compareTo(_severityRank(b['severity']));
+              if (severityCompare != 0) {
+                return severityCompare;
+              }
+              return a['allergen_name']
+                  .toString()
+                  .toLowerCase()
+                  .compareTo(b['allergen_name'].toString().toLowerCase());
+            });
 
           nameController.text = data['name'] ?? "";
           usernameController.text = data['username'] ?? "";
@@ -447,6 +581,59 @@ class ProfilePageState extends State<ProfilePage> {
                   ),
                 ],
                 const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: selectedSeverityFilter,
+                        decoration: const InputDecoration(
+                          labelText: "Filter",
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: "all", child: Text("All")),
+                          DropdownMenuItem(value: "severe", child: Text("Severe")),
+                          DropdownMenuItem(
+                              value: "moderate", child: Text("Moderate")),
+                          DropdownMenuItem(value: "mild", child: Text("Mild")),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              selectedSeverityFilter = value;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: selectedSort,
+                        decoration: const InputDecoration(
+                          labelText: "Sort",
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                              value: "severity", child: Text("By severity")),
+                          DropdownMenuItem(value: "name", child: Text("By name")),
+                          DropdownMenuItem(value: "date", child: Text("By date")),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              selectedSort = value;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 if (allergens.isEmpty)
                   Container(
                     width: double.infinity,
@@ -484,10 +671,11 @@ class ProfilePageState extends State<ProfilePage> {
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: allergens.length,
+                    itemCount: filteredAndSortedAllergens.length,
                     itemBuilder: (context, index) {
-                      final allergen = allergens[index]['allergen_name'];
-                      final severity = allergens[index]['severity'];
+                      final allergenEntry = filteredAndSortedAllergens[index];
+                      final allergen = allergenEntry['allergen_name'];
+                      final severity = allergenEntry['severity'];
                       final color = _severityColor(severity);
 
                       return Card(
@@ -497,6 +685,7 @@ class ProfilePageState extends State<ProfilePage> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: ListTile(
+                          onTap: () => _showAllergenDetails(allergenEntry),
                           leading: CircleAvatar(
                             backgroundColor: color.withOpacity(0.15),
                             child: Icon(
@@ -511,16 +700,10 @@ class ProfilePageState extends State<ProfilePage> {
                             ),
                           ),
                           subtitle: Text(
-                            severity,
+                            "$severity • ${_formatAllergenDate(allergenEntry['date_added'])}",
                             style: TextStyle(color: color),
                           ),
-                          trailing: IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.redAccent,
-                            ),
-                            onPressed: () => _deleteAllergen(allergen),
-                          ),
+                          trailing: const Icon(Icons.chevron_right),
                         ),
                       );
                     },
