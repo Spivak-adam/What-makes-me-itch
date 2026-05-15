@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:intl/intl.dart';
 import '../config/api_config.dart';
 import 'custom_app_bar.dart';
 import 'login_page.dart';
@@ -265,6 +266,21 @@ class ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  DateTime? _parseAllergenDate(dynamic rawDate) {
+    if (rawDate == null) return null;
+    try {
+      return DateTime.parse(rawDate.toString());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _formatAllergenDate(dynamic rawDate) {
+    final parsed = _parseAllergenDate(rawDate);
+    if (parsed == null) return "Date unavailable";
+    return DateFormat.yMMMd().add_jm().format(parsed.toLocal());
+  }
+
   String _allergenInfo(String allergenName) {
     final lookup = allergenName.toLowerCase();
     if (lookup.contains("peanut")) {
@@ -361,6 +377,19 @@ class ProfilePageState extends State<ProfilePage> {
                     .toString()
                     .toLowerCase()
                     .compareTo(b['allergen_name'].toString().toLowerCase());
+              }
+              if (selectedSort == "date") {
+                final dateA = _parseAllergenDate(a['date_added']);
+                final dateB = _parseAllergenDate(b['date_added']);
+                if (dateA == null && dateB == null) {
+                  return a['allergen_name']
+                      .toString()
+                      .toLowerCase()
+                      .compareTo(b['allergen_name'].toString().toLowerCase());
+                }
+                if (dateA == null) return 1;
+                if (dateB == null) return -1;
+                return dateB.compareTo(dateA);
               }
               final severityCompare =
                   _severityRank(a['severity']).compareTo(_severityRank(b['severity']));
@@ -591,6 +620,7 @@ class ProfilePageState extends State<ProfilePage> {
                           DropdownMenuItem(
                               value: "severity", child: Text("By severity")),
                           DropdownMenuItem(value: "name", child: Text("By name")),
+                          DropdownMenuItem(value: "date", child: Text("By date")),
                         ],
                         onChanged: (value) {
                           if (value != null) {
@@ -670,7 +700,7 @@ class ProfilePageState extends State<ProfilePage> {
                             ),
                           ),
                           subtitle: Text(
-                            severity,
+                            "$severity • ${_formatAllergenDate(allergenEntry['date_added'])}",
                             style: TextStyle(color: color),
                           ),
                           trailing: const Icon(Icons.chevron_right),
