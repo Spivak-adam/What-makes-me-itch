@@ -323,6 +323,10 @@ class ProfilePageState extends State<ProfilePage> {
   void _showAllergenDetails(Map<String, dynamic> allergenEntry) {
     final allergenName = allergenEntry['allergen_name'] ?? "Unknown";
     final severity = allergenEntry['severity'] ?? "unknown";
+    final reaction = (allergenEntry['reaction'] ?? "Not provided").toString();
+    final location = (allergenEntry['location'] ?? "Not provided").toString();
+    final productId = allergenEntry['product_id'];
+    final productName = allergenEntry['product_name'];
     final loggedDate = _formatAllergenDate(allergenEntry['date_added']);
 
     showDialog(
@@ -351,9 +355,17 @@ class ProfilePageState extends State<ProfilePage> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
-            Text(
-              "Allergen: $allergenName",
-            ),
+            Text("Allergen: $allergenName"),
+            const SizedBox(height: 4),
+            Text("Reaction: $reaction"),
+            const SizedBox(height: 4),
+            Text("Location: $location"),
+            if (productId != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                "Product: ${productName?.toString().isNotEmpty == true ? productName : "ID $productId"}",
+              ),
+            ],
             const SizedBox(height: 10),
             const Text(
               "About this allergen",
