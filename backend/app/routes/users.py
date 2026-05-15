@@ -21,10 +21,10 @@ def get_user_data(user_id):
 
         cursor.execute(
             """
-            SELECT allergen_name, severity, date_added
+            SELECT allergen_name, severity
             FROM allergies
             WHERE user_id = %s
-            ORDER BY date_added DESC, allergen_name ASC
+            ORDER BY ('date')
             """,
             (user_id,),
         )

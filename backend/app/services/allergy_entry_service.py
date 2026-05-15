@@ -2,14 +2,21 @@ from datetime import datetime
 from app.db import connect_db
 
 
-def create_allergy_entry(user_id, allergen_name, reaction, severity, notes=None, date_added=None):
+def create_allergy_entry(user_id, allergen_name, reaction, notes=None, date_added=None):
     conn = None
     cursor = None
 
     try:
         conn = connect_db()
         cursor = conn.cursor(dictionary=True)
-        
+
+        # Your schema requires severity, but AddEntryPage does not collect it yet.
+        # Defaulting to "mild" for now.
+        severity = "mild"
+
+        # Notes do not have a direct column in your schema.
+        # For now, store them in location only if you want something saved there,
+        # but semantically this is not ideal. Better long-term fix is adding a notes column.
         location_value = notes if notes and notes.strip() else None
 
         if date_added:
