@@ -94,6 +94,7 @@ class _AddEntryPageState extends State<AddEntryPage> {
       final requestBody = {
         "user_id": widget.userId,
         "allergen_name": trigger,
+        "severity": selectedSeverity,
         "reaction": symptom,
         "severity": selectedSeverity,
         "notes": notes.isEmpty ? null : notes,

@@ -19,6 +19,7 @@ def add_allergy_entry():
         user_id = data.get("user_id")
         allergen_name = data.get("allergen_name")
         reaction = data.get("reaction")
+        severity = data.get("serverity")
         notes = data.get("notes")
         severity = data.get("severity")
         date_added = data.get("date_added")
