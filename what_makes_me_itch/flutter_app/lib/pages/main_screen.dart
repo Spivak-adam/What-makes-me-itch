@@ -59,8 +59,8 @@ class MainScreenState extends State<MainScreen> {
               label: "Profile",
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: "Home",
+              icon: Icon(Icons.chat_bubble_outline),
+              label: "Chat",
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.barcode_reader),
