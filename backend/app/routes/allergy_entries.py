@@ -39,10 +39,14 @@ def add_allergy_entry():
             }), 400
 
         parsed_date = None
+
         if date_added:
             try:
-                # Expecting something like: 2026-03-09 00:00:00
-                parsed_date = datetime.strptime(date_added, "%Y-%m-%d %H:%M:%S")
+                parsed_date = datetime.strptime(
+                    date_added,
+                    "%Y-%m-%d %H:%M:%S"
+                )
+
             except ValueError:
                 return jsonify({
                     "error": "date_added must be in format YYYY-MM-DD HH:MM:SS"
@@ -53,7 +57,8 @@ def add_allergy_entry():
             allergen_name=allergen_name.strip(),
             reaction=reaction.strip(),
             severity=severity,
-            notes=notes.strip() if notes else None,
+            notes=notes,
+            product_id=None,
             date_added=parsed_date
         )
 
@@ -67,44 +72,57 @@ def add_allergy_entry():
     
 @allergy_entries_bp.route("/api/scanned-product-entry", methods=["POST"])
 def save_scanned_product_entry():
-    data = request.get_json()
+    try:
+        data = request.get_json()
 
-    user_id = data.get("user_id")
-    product_name = data.get("product_name")
-    ingredients = data.get("ingredients") or "No ingredients found"
-    allergen_name = data.get("allergen_name")
-    severity = data.get("severity")
-    reaction = data.get("reaction")
-    date_added = data.get("date_added")
+        user_id = data.get("user_id")
+        product_name = data.get("product_name")
+        ingredients = data.get("ingredients") or "No ingredients found"
+        severity = data.get("severity", "mild")
+        reaction = data.get("reaction")
+        notes = data.get("notes")
+        date_added = data.get("date_added")
 
-    conn = connect_db()
-    cur = conn.cursor()
+        parsed_date = None
 
-    cur.execute("""
-        INSERT INTO products (product_name, ingredients)
-        VALUES (%s, %s)
-        ON CONFLICT (product_name)
-        DO UPDATE SET ingredients = EXCLUDED.ingredients
-        RETURNING id;
-    """, (product_name, ingredients))
+        if date_added:
+            parsed_date = datetime.strptime(
+                date_added,
+                "%Y-%m-%d %H:%M:%S"
+            )
 
-    product_id = cur.fetchone()[0]
+        conn = connect_db()
+        cur = conn.cursor()
 
-    cur.execute("""
-        INSERT INTO allergies
-        (user_id, allergen_name, severity, reaction, product_id, date_added)
-        VALUES (%s, %s, %s, %s, %s, COALESCE(%s, CURRENT_TIMESTAMP));
-    """, (
-        user_id,
-        allergen_name,
-        severity,
-        reaction,
-        product_id,
-        date_added,
-    ))
+        cur.execute("""
+            INSERT INTO products (product_name, ingredients)
+            VALUES (%s, %s)
+            ON CONFLICT (product_name)
+            DO UPDATE SET ingredients = EXCLUDED.ingredients
+            RETURNING id;
+        """, (product_name, ingredients))
 
-    conn.commit()
-    cur.close()
-    conn.close()
+        product_id = cur.fetchone()[0]
 
-    return jsonify({"message": "Scanned product reaction saved"}), 201
+        conn.commit()
+
+        cur.close()
+        conn.close()
+
+        result = create_allergy_entry(
+            user_id=user_id,
+            allergen_name=product_name,
+            reaction=reaction,
+            severity=severity,
+            notes=notes,
+            product_id=product_id,
+            date_added=parsed_date
+        )
+
+        return jsonify(result), 201
+
+    except Exception as e:
+        return jsonify({
+            "error": "Failed to save scanned product",
+            "details": str(e)
+        }), 500
